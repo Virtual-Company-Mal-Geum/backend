@@ -1,0 +1,138 @@
+version: '3.8'
+
+services:
+  # 1. PostgreSQL (메인 RDBMS - 멀티 테넌시 데이터 저장)
+  postgres:
+    image: postgres:16
+    container_name: sangsang-postgres
+    environment:
+      POSTGRES_USER: saas_admin
+      POSTGRES_PASSWORD: saas_password
+      POSTGRES_DB: brandguard_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      # - ./init.sversion: '3.8'
+
+services:
+  # 1. PostgreSQL (메인 RDBMS - 멀티 테넌시 데이터 저장)
+  postgres:
+    image: postgres:16
+    container_name: sangsang-postgres
+    environment:
+      POSTGRES_USER: saas_admin
+      POSTGRES_PASSWORD: saas_password
+      POSTGRES_DB: brandguard_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    restart: always
+
+  # 2. Redis (캐싱, 세션 관리 및 실시간 랭킹)
+ql:/docker-entrypoint-initdb.d/init.sql # 초기 스키마 세팅용
+    restart: always
+
+  redis:
+    image: redis:7.2-alpine
+    container_name: sangsang-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: always
+
+  # 3. Kafka (실시간 이벤트 브로커 - Zookeeper가 없는 KRaft 모드 적용)
+  kafka:
+    image: bitnami/kafka:3.7.0
+    container_name: sangsang-kafka
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+  # 2. Redis (캐싱, 세션 관리 및 실시간 랭킹)
+  redis:
+    image: redis:7.2-alpine
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    ports:
+      - "9094:9094" # Spring Boot 애플리케이션(Host)에서 접근할 포트
+    volumes:
+      - kafka-data:/bitnami/kafka
+    restart: always
+
+  # 4. OpenSearch (비정형 데이터 및 AI 분석 로그 검색 엔진)
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: sangsang-redis
+    ports:
+      - "6379:6379"
+    container_name: sangsang-opensearch
+    environment:
+      - cluster.name=sangsang-cluster
+      - node.name=os-node-1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # 로컬 메모리 보호를 위한 힙 제한
+      - DISABLE_SECURITY_PLUGIN=true # 로컬 개발 편의를 위해 시큐리티 플러그인 비활성화
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    restart: always
+
+# 볼륨 선언 (컨테이너 재시작 시 데이터 영속성 유지)
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  opensearch-data:    volumes:
+      - redis-data:/data
+    restart: always
+
+  # 3. Kafka (실시간 이벤트 브로커 - Zookeeper가 없는 KRaft 모드 적용)
+  kafka:
+    image: bitnami/kafka:3.7.0
+    container_name: sangsang-kafka
+    environment:
+      KAFKA_CFG_NODE_ID: 1
+      KAFKA_CFG_PROCESS_ROLES: controller,broker
+      KAFKA_CFG_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_CFG_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,EXTERNAL://:9094
+      KAFKA_CFG_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,EXTERNAL://localhost:9094
+      KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,EXTERNAL:PLAINTEXT,PLAINTEXT:PLAINTEXT
+      KAFKA_CFG_CONTROLLER_LISTENER_NAMES: CONTROLLER
+    ports:
+      - "9094:9094" # Spring Boot 애플리케이션(Host)에서 접근할 포트
+    volumes:
+      - kafka-data:/bitnami/kafka
+    restart: always
+
+  # 4. OpenSearch (비정형 데이터 및 AI 분석 로그 검색 엔진)
+  opensearch:
+    image: opensearchproject/opensearch:2.11.0
+    container_name: sangsang-opensearch
+    environment:
+      - cluster.name=sangsang-cluster
+      - node.name=os-node-1
+      - discovery.type=single-node
+      - bootstrap.memory_lock=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m" # 로컬 메모리 보호를 위한 힙 제한
+      - DISABLE_SECURITY_PLUGIN=true # 로컬 개발 편의를 위해 시큐리티 플러그인 비활성화
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch-data:/usr/share/opensearch/data
+    restart: always
+
+# 볼륨 선언 (컨테이너 재시작 시 데이터 영속성 유지)
+volumes:
+  postgres-data:
+  redis-data:
+  kafka-data:
+  opensearch-data:
