@@ -1,7 +1,10 @@
-package com.malgeum.geo.domain;
+package com.malgeum.geo.domain.clientOrder;
 
 import java.net.URL;
 import java.util.UUID;
+
+import com.malgeum.geo.domain.BaseTimeEntity;
+import com.malgeum.geo.domain.client.Client;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,6 +12,7 @@ import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import lombok.Builder;
@@ -25,14 +29,14 @@ public class ClientOrder extends BaseTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY) // 실무에서 N+1 문제를 막기 위한 절대 규칙: 무조건 LAZY!
-    @Column(name = "client_id", nullable = false)
+    @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
     @Column(name = "target_url", nullable = false, length = 2048)
     private URL targetUrl;
 
-    @Column(name = "uuid", nullable = false, length = 36, unique = true)
-    private String uuid; // Java의 UUID를 String으로 변환해서 저장
+    @Column(name = "resource_key", nullable = false, length = 36, unique = true)
+    private String resourceKey; // Java의 UUID를 String으로 변환해서 저장
 
     @Column(name = "job_status", nullable = false, length = 20)
     private JobStatus jobStatus;
@@ -42,10 +46,10 @@ public class ClientOrder extends BaseTimeEntity {
     // private PaymentMeans paymentMeans;
 
     @Builder
-    public ClientOrder(Client client, URL targetUrl, String uuid) {
+    public ClientOrder(Client client, URL targetUrl) {
         this.client = client;
         this.targetUrl = targetUrl;
-        this.uuid = UUID.randomUUID().toString();
+        this.resourceKey = UUID.randomUUID().toString();
         this.jobStatus = JobStatus.PENDING;
     }
 

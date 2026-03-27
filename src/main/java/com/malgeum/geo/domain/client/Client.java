@@ -1,4 +1,6 @@
-package com.malgeum.geo.domain;
+package com.malgeum.geo.domain.client;
+
+import com.malgeum.geo.domain.BaseTimeEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

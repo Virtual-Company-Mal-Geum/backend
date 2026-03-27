@@ -1,17 +1,20 @@
-package com.malgeum.geo.domain;
+package com.malgeum.geo.domain.analysisReport;
 
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 import org.hibernate.type.format.jakartajson.JsonBJsonFormatMapper;
+
+import com.malgeum.geo.domain.BaseTimeEntity;
+import com.malgeum.geo.domain.clientOrder.ClientOrder;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.MapsId;
 import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Builder;
@@ -24,11 +27,11 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
 public class AnalysisReport extends BaseTimeEntity {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY) // 실무에서 N+1 문제를 막기 위한 절대 규칙: 무조건 LAZY!
-    @Column(name = "client_order_id", nullable = false, length = 20)
+    @OneToOne(fetch = FetchType.LAZY)
+    @MapsId //주문 엔티티의 id(PK)가 곧 분석결과의 id값과 동일하므로 둘을 매핑
+    @JoinColumn(name = "order_id", nullable = false)
     private ClientOrder clientOrder;
 
     // JSONB 타입으로 저장할 필드들
