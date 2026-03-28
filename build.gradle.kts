@@ -1,6 +1,6 @@
 plugins {
 	java
-	id("org.springframework.boot") version "4.0.3"
+	id("org.springframework.boot") version "3.2.4"
 	id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -9,7 +9,7 @@ version = "0.0.1-SNAPSHOT"
 
 java {
 	toolchain {
-		languageVersion = JavaLanguageVersion.of(23) //21
+		languageVersion = JavaLanguageVersion.of(21)
 	}
 }
 
@@ -18,12 +18,13 @@ repositories {
 }
 
 dependencies {
-	//common
+	//starter
 	implementation("org.springframework.boot:spring-boot-starter")
-	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+	testImplementation("org.springframework.boot:spring-boot-starter-test")
     implementation("org.springframework.boot:spring-boot-starter-web")
 	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("org.springframework.security:spring-security-test")
 
 	// data
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
@@ -33,10 +34,10 @@ dependencies {
 	implementation ("org.eclipse:yasson:3.0.3")
 	
 	// lombok
-	compileOnly("org.projectlombok:lombok:1.18.28")
-	annotationProcessor("org.projectlombok:lombok:1.18.28")
-	testCompileOnly("org.projectlombok:lombok:1.18.28")
-	testAnnotationProcessor("org.projectlombok:lombok:1.18.28")
+	compileOnly("org.projectlombok:lombok:1.18.44")
+	annotationProcessor("org.projectlombok:lombok:1.18.44")
+	testCompileOnly("org.projectlombok:lombok:1.18.44")
+	testAnnotationProcessor("org.projectlombok:lombok:1.18.44")
 
 	// JWT
 	implementation("io.jsonwebtoken:jjwt-api:0.12.5")
