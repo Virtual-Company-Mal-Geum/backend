@@ -28,6 +28,7 @@ public class GeoAIServiceTest {
     @Autowired
     private MockRestServiceServer mockServer; // 가짜 파이썬 AI 서버
 
+    @SuppressWarnings("null")
     @Test
     @DisplayName("AI 서버에 정상적인 요청을 보내고, 결과를 성공적으로 파싱해야 한다.")
     public void evaluateTarget_ShouldReturnSuccess() {
