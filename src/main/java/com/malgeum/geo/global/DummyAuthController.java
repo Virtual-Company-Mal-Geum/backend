@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.malgeum.geo.global.auth.JwtTokenProvider;
+
 // 로그인 기능 테스트를 위한 가짜 Controller
 @RestController
 @RequestMapping("/api/v1")

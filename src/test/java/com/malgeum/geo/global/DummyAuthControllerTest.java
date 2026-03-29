@@ -10,6 +10,10 @@ import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.web.servlet.MockMvc;
 
+import com.malgeum.geo.global.auth.JwtTokenProvider;
+import com.malgeum.geo.global.config.SecurityConfig;
+import com.malgeum.geo.global.filter.JwtAuthenticationFilter;
+
 import static org.mockito.BDDMockito.given;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;

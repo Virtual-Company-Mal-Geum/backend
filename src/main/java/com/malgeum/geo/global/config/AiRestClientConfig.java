@@ -1,4 +1,4 @@
-package com.malgeum.geo.global;
+package com.malgeum.geo.global.config;
 
 import java.net.http.HttpClient;
 import java.time.Duration;
@@ -10,6 +10,7 @@ import org.springframework.http.client.JdkClientHttpRequestFactory;
 
 @Configuration
 public class AiRestClientConfig {
+    @SuppressWarnings("null")
     @Bean
     public RestClientCustomizer aRestClientCustomizer() {
         return builder -> {

@@ -1,10 +1,9 @@
-package com.malgeum.geo.domain.clientOrder;
+package com.malgeum.geo.domain.domain;
 
 import java.net.URL;
 import java.util.UUID;
 
 import com.malgeum.geo.domain.BaseTimeEntity;
-import com.malgeum.geo.domain.client.Client;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -23,7 +22,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Table(name = "client_order")
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
-public class ClientOrder extends BaseTimeEntity {
+public class Order extends BaseTimeEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -46,7 +45,7 @@ public class ClientOrder extends BaseTimeEntity {
     // private PaymentMeans paymentMeans;
 
     @Builder
-    public ClientOrder(Client client, URL targetUrl) {
+    public Order(Client client, URL targetUrl) {
         this.client = client;
         this.targetUrl = targetUrl;
         this.resourceKey = UUID.randomUUID().toString();

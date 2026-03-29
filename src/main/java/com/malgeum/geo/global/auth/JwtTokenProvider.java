@@ -1,4 +1,4 @@
-package com.malgeum.geo.global;
+package com.malgeum.geo.global.auth;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
