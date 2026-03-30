@@ -8,10 +8,10 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.client.RestClientTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 
 import com.malgeum.geo.service.GeoAiService;
@@ -20,8 +20,11 @@ import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @RestClientTest(GeoAiService.class)
-@MockBean(JpaMetamodelMappingContext.class)
 public class GeoAIServiceTest {
+
+    @MockitoBean
+    private JpaMetamodelMappingContext mockJpaMetamodelMappingContext;
+
     @Autowired
     private GeoAiService geoAiService;
 

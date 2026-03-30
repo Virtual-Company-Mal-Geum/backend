@@ -3,11 +3,11 @@ package com.malgeum.geo.global;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.jpa.mapping.JpaMetamodelMappingContext;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.malgeum.geo.global.auth.JwtTokenProvider;
@@ -24,12 +24,14 @@ import java.util.List;
 //JWT 및 SecurityConfig Mock 테스트
 @WebMvcTest(DummyAuthController.class)
 @Import({SecurityConfig.class, JwtAuthenticationFilter.class})
-@MockBean(JpaMetamodelMappingContext.class)
 public class DummyAuthControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
+    private JpaMetamodelMappingContext mockJpaMetamodelMappingContext;
+
+    @MockitoBean
     private JwtTokenProvider jwtTokenProvider;
 
     @Test
