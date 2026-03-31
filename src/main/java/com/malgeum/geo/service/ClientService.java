@@ -18,7 +18,7 @@ public class ClientService {
                 .name(name)
                 .email(email)
                 .phone(phone)
-                .comapany(company)
+                .company(company)
                 .build();
         clientRepository.save(client);
     }

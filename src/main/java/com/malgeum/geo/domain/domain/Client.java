@@ -25,7 +25,7 @@ public class Client extends BaseTimeEntity {
     private String name;
 
     @Column(name = "company", nullable = false, length = 100)
-    private String comapany;
+    private String company;
 
     @Column(name = "email", nullable = false, length = 100)
     private String email;
@@ -37,9 +37,9 @@ public class Client extends BaseTimeEntity {
     private ClientStatus status;
 
     @Builder
-    public Client(String name, String comapany, String email, String phone) {
+    public Client(String name, String company, String email, String phone) {
         this.name = name;
-        this.comapany = comapany;
+        this.company = company;
         this.email = email;
         this.phone = phone;
         this.status = ClientStatus.ACTIVE;

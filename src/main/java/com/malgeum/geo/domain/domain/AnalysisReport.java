@@ -31,7 +31,7 @@ public class AnalysisReport extends BaseTimeEntity {
 
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId // 주문 엔티티의 id(PK)가 곧 분석결과의 id값과 동일하므로 둘을 매핑
-    @JoinColumn(name = "order_id", nullable = false)
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order clientOrder;
 
     // JSONB 타입으로 저장할 필드들
@@ -49,7 +49,7 @@ public class AnalysisReport extends BaseTimeEntity {
     //
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "report_status", nullable = false, length = 20)
+    @Column(name = "report_status", length = 20)
     private ReportStatus reportStatus;
 
     @Builder
