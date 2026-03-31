@@ -49,9 +49,4 @@ public class OrderService {
         return order;
     }
 
-    public String processOrder(String orderId) {
-        log.info("[OrderService] 주문 처리 시작. 주문 ID: {}", orderId);
-        return "주문 " + orderId + "이 성공적으로 처리되었습니다.";
-    }
-
 }
