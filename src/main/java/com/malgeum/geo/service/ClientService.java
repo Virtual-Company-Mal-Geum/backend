@@ -7,6 +7,7 @@ import com.malgeum.geo.global.common.ClientRepository;
 
 import lombok.RequiredArgsConstructor;
 
+@SuppressWarnings("null")
 @Service
 @RequiredArgsConstructor
 public class ClientService {

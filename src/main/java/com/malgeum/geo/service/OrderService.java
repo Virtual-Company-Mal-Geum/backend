@@ -1,7 +1,5 @@
 package com.malgeum.geo.service;
 
-import java.net.URL;
-
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
@@ -22,6 +20,7 @@ public class OrderService {
     private final ClientRepository clientRepository;
     private final GeoAsyncWorker geoAsyncWorker;
 
+    @SuppressWarnings("null")
     @Transactional
     public Long acceptOrder(String targetUrl) {
         // 1. JWT 필터를 통과한 현재 로그인 고객사 ID 가져오기
@@ -31,7 +30,7 @@ public class OrderService {
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 고객사입니다."));
 
-        Order savedOrder = orderRepository.save(create(client, targetUrl));
+        Order savedOrder = orderRepository.save(createOrder(client, targetUrl));
         log.info("[OrderService] 새로운 분석 주문 접수 완료 - OrderID: {}", savedOrder.getId());
 
         // 3. ⭐️ 핵심: 비동기 워커에게 "이 주문번호(orderId)랑 URL 가지고 가서 일해!" 라고 던짐
@@ -41,7 +40,7 @@ public class OrderService {
     }
 
     // 2. 주문서 생성 (초기 상태: PENDING)
-    public Order create(Client client, String targetUrl) {
+    public Order createOrder(Client client, String targetUrl) {
         Order order = Order.builder()
                 .client(client)
                 .targetUrl(targetUrl)

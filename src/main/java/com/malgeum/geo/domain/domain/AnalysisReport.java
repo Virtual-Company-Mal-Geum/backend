@@ -1,8 +1,9 @@
 package com.malgeum.geo.domain.domain;
 
+import java.util.Map;
+
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
-import org.hibernate.type.format.jakartajson.JsonBJsonFormatMapper;
 
 import com.malgeum.geo.domain.BaseTimeEntity;
 
@@ -36,15 +37,15 @@ public class AnalysisReport extends BaseTimeEntity {
     // JSONB 타입으로 저장할 필드들
     @JdbcTypeCode(SqlTypes.JSON) // PostgreSQL의 JSONB 타입을 사용하기 위한 설정
     @Column(name = "raw_scraped_data", nullable = false, columnDefinition = "jsonb")
-    private JsonBJsonFormatMapper rawScrapedData;
+    private Map<String, Object> rawScrapedData;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "raw_ai_log", columnDefinition = "jsonb") // ai가 분석한 결과 데이터
-    private JsonBJsonFormatMapper rawAILog;
+    private Map<String, Object> rawAILog;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "processed_result", columnDefinition = "jsonb") // AI분석 결과에서 가공한 시각화 데이터
-    private JsonBJsonFormatMapper processedResult;
+    private Map<String, Object> processedResult;
     //
 
     @Enumerated(EnumType.STRING)
@@ -52,10 +53,15 @@ public class AnalysisReport extends BaseTimeEntity {
     private ReportStatus reportStatus;
 
     @Builder
-    public AnalysisReport(Order clientOrder, JsonBJsonFormatMapper rawScrapedData) {
+    public AnalysisReport(Order clientOrder, Map<String, Object> rawScrapedData) {
         this.clientOrder = clientOrder;
         this.rawScrapedData = rawScrapedData;
         this.reportStatus = ReportStatus.AVAILABLE;
+    }
+
+    public void updateAiLogAndProcessedResult(Map<String, Object> aiLog, Map<String, Object> processedResult) {
+        this.rawAILog = aiLog;
+        this.processedResult = processedResult;
     }
 
     public void updateReportStatus(ReportStatus newStatus) {

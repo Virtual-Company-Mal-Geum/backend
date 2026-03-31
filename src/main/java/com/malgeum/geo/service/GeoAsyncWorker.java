@@ -1,9 +1,6 @@
 package com.malgeum.geo.service;
 
 import java.util.Map;
-import java.util.Optional;
-
-import org.apache.tomcat.util.json.JSONParser;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
@@ -29,7 +26,8 @@ public class GeoAsyncWorker {
     private final OrderRepository orderRepository;
     private final AnalysisReportRepository analysisReportRepository;
 
-    // 이전에 설정한 커스텀 스레드 풀(예: taskExecutor)에서 실행되도록 지정
+    // 이전에 설정한 커스텀 스레드 풀에서 실행되도록 지정
+    @SuppressWarnings("null")
     @Async("taskExecutor")
     @Transactional
     public void processAnalysis(Long orderId) {
@@ -39,8 +37,9 @@ public class GeoAsyncWorker {
             return;
         }
 
-        Order order = orderRepository.findById(orderId).orElseThrow();
+        Order order=null;
         try {
+            order = orderRepository.findById(orderId).orElseThrow();
             // 1. 상태를 PROCESSING(진행 중)으로 변경
             order.updateStatus(Order.JobStatus.PROCESSING);
             String targetUrl = order.getTargetUrl();
@@ -49,17 +48,12 @@ public class GeoAsyncWorker {
             // 3. AI 서버에 평가 요청 (부품 2)
             GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(targetUrl, scrapedData.htmlText(),
                     scrapedData.jsonLd());
-            // TODO: AI 응답에서 JSON 문자열을 Map으로 변환 (예시)
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> aiResultMap = objectMapper.readValue(aiResponse.result(),
-                    new TypeReference<Map<String, Object>>() {
-                    });
+            
             // 4. 성공: 결과 리포트(AnalysisReport) 생성 및 상태 업데이트
             if (aiResponse.status().equals("success")) {
                 AnalysisReport report = AnalysisReport.builder()
                         .clientOrder(order)
-                        // TODO: String 형태의 AI 결과를 JSONB Map으로 변환해서 넣는 로직 필요
-                        // .rawScrapedData(aiResultMap)
+                        .rawScrapedData(parseJsonMap(aiResponse.result()))
                         .build();
                 analysisReportRepository.save(report);
                 order.updateStatus(Order.JobStatus.SUCCESS);
@@ -73,5 +67,14 @@ public class GeoAsyncWorker {
             log.error("[AsyncWorker] 작업 중 치명적 오류 발생 - OrderID: {}", orderId, e);
             order.updateStatus(Order.JobStatus.FAILED);
         }
+    }
+
+    private Map<String, Object> parseJsonMap(String jsonString) throws Exception {
+        // AI 응답에서 JSON 문자열을 Map으로 변환
+            ObjectMapper objectMapper = new ObjectMapper();
+            Map<String, Object> aiResultMap = objectMapper.readValue(jsonString,
+                    new TypeReference<Map<String, Object>>() {
+                    });
+            return aiResultMap;
     }
 }

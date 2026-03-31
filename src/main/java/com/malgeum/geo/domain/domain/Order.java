@@ -1,6 +1,5 @@
 package com.malgeum.geo.domain.domain;
 
-import java.net.URL;
 import java.util.UUID;
 
 import com.malgeum.geo.domain.BaseTimeEntity;
