@@ -29,7 +29,7 @@ public class AnalysisReport extends BaseTimeEntity {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @MapsId //주문 엔티티의 id(PK)가 곧 분석결과의 id값과 동일하므로 둘을 매핑
+    @MapsId // 주문 엔티티의 id(PK)가 곧 분석결과의 id값과 동일하므로 둘을 매핑
     @JoinColumn(name = "order_id", nullable = false)
     private Order clientOrder;
 

@@ -32,7 +32,7 @@ public class Order extends BaseTimeEntity {
     private Client client;
 
     @Column(name = "target_url", nullable = false, length = 2048)
-    private URL targetUrl;
+    private String targetUrl;
 
     @Column(name = "resource_key", nullable = false, length = 36, unique = true)
     private String resourceKey; // Java의 UUID를 String으로 변환해서 저장
@@ -45,7 +45,7 @@ public class Order extends BaseTimeEntity {
     // private PaymentMeans paymentMeans;
 
     @Builder
-    public Order(Client client, URL targetUrl) {
+    public Order(Client client, String targetUrl) {
         this.client = client;
         this.targetUrl = targetUrl;
         this.resourceKey = UUID.randomUUID().toString();

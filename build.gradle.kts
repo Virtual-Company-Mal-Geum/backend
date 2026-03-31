@@ -28,7 +28,6 @@ dependencies {
 	//db/jpa
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
 	implementation("com.h2database:h2")
-	implementation("org.springframework.data.jpa.repository.JpaRepository")
 	//json
 	implementation ("jakarta.json:jakarta.json-api:2.1.0")
 	implementation ("org.eclipse:yasson:3.0.3")

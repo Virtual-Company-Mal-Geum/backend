@@ -9,15 +9,14 @@ import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.client.ResourceAccessException;
 
-
 @Slf4j
 @Service
 public class GeoAiService {
     private final RestClient restClient;
 
-    public GeoAiService(RestClient.Builder restClientBuilder) { 
+    public GeoAiService(RestClient.Builder restClientBuilder) {
 
-        // [의도] 로컬호스트 주소를 Base URL로 고정. 
+        // [의도] 로컬호스트 주소를 Base URL로 고정.
         // (실무에서는 이 부분을 application.yml의 환경 변수로 분리하는 것을 권장합니다.)
         this.restClient = restClientBuilder
                 .baseUrl("http://localhost:8000")
@@ -25,8 +24,11 @@ public class GeoAiService {
     }
 
     // [의도] 요청/응답 데이터의 불변성을 보장하고 보일러플레이트 코드를 줄이기 위해 Record 사용
-    public record GeoEvaluationRequest(String url, String htmlText, String jsonLd) {}
-    public record GeoEvaluationResponse(String status, String result) {}
+    public record GeoEvaluationRequest(String url, String htmlText, String jsonLd) {
+    }
+
+    public record GeoEvaluationResponse(String status, String result) {
+    }
 
     @SuppressWarnings("null")
     public GeoEvaluationResponse evaluateTarget(String url, String htmlText, String jsonLd) {
