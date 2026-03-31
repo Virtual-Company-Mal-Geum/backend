@@ -53,9 +53,10 @@ public class AnalysisReport extends BaseTimeEntity {
     private ReportStatus reportStatus;
 
     @Builder
-    public AnalysisReport(Order clientOrder, Map<String, Object> rawScrapedData) {
+    public AnalysisReport(Order clientOrder, Map<String, Object> rawScrapedData, Map<String, Object> rawAILog) {
         this.clientOrder = clientOrder;
         this.rawScrapedData = rawScrapedData;
+        this.rawAILog = rawAILog;
         this.reportStatus = ReportStatus.AVAILABLE;
     }
 

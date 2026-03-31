@@ -42,6 +42,8 @@ dependencies {
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
 	//jsoup
 	implementation("org.jsoup:jsoup:1.17.2")
+	//tomcat
+	implementation("org.apache.tomcat.embed:tomcat-embed-core")
 }
 
 tasks.withType<Test> {

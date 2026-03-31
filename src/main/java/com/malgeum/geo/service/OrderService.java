@@ -19,7 +19,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ClientRepository clientRepository;
     private final GeoAsyncWorker geoAsyncWorker;
-
+    
     @SuppressWarnings("null")
     @Transactional
     public Long acceptOrder(String targetUrl) {

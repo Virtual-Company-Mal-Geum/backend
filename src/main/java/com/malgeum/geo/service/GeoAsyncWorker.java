@@ -53,7 +53,8 @@ public class GeoAsyncWorker {
             if (aiResponse.status().equals("success")) {
                 AnalysisReport report = AnalysisReport.builder()
                         .clientOrder(order)
-                        .rawScrapedData(parseJsonMap(aiResponse.result()))
+                        .rawScrapedData(Map.of("htmlText", scrapedData.htmlText(), "jsonLd", scrapedData.jsonLd()))
+                        .rawAILog(parseJsonMap(aiResponse.result()))
                         .build();
                 analysisReportRepository.save(report);
                 order.updateStatus(Order.JobStatus.SUCCESS);
@@ -70,7 +71,7 @@ public class GeoAsyncWorker {
     }
 
     private Map<String, Object> parseJsonMap(String jsonString) throws Exception {
-        // AI 응답에서 JSON 문자열을 Map으로 변환
+            // AI 응답에서 JSON 문자열을 Map으로 변환
             ObjectMapper objectMapper = new ObjectMapper();
             Map<String, Object> aiResultMap = objectMapper.readValue(jsonString,
                     new TypeReference<Map<String, Object>>() {

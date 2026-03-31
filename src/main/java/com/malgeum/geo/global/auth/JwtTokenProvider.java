@@ -33,7 +33,7 @@ public class JwtTokenProvider {
 
     // 1. 유저 정보를 가지고 AccessToken을 생성하는 메서드
     public String generateToken(String userUid, List<String> roles) {
-        Claims claims = (Claims) Jwts.claims().subject(userUid).add("roles", roles).build();
+        Claims claims = (Claims) Jwts.claims().subject(userUid).add("auth", roles).build();
 
         long now = (new Date()).getTime();
         Date accessTokenExpiresIn = new Date(now + 86400000); // 1일동안만 토큰 유효
