@@ -19,7 +19,7 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final ClientRepository clientRepository;
     private final GeoAsyncWorker geoAsyncWorker;
-    
+
     @SuppressWarnings("null")
     @Transactional
     public Long acceptOrder(String targetUrl) {
@@ -29,7 +29,6 @@ public class OrderService {
 
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 고객사입니다."));
-
         Order savedOrder = orderRepository.save(createOrder(client, targetUrl));
         log.info("[OrderService] 새로운 분석 주문 접수 완료 - OrderID: {}", savedOrder.getId());
 

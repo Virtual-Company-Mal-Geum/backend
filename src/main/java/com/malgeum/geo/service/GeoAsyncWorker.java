@@ -37,7 +37,7 @@ public class GeoAsyncWorker {
             return;
         }
 
-        Order order=null;
+        Order order = null;
         try {
             order = orderRepository.findById(orderId).orElseThrow();
             // 1. 상태를 PROCESSING(진행 중)으로 변경
@@ -48,7 +48,7 @@ public class GeoAsyncWorker {
             // 3. AI 서버에 평가 요청 (부품 2)
             GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(targetUrl, scrapedData.htmlText(),
                     scrapedData.jsonLd());
-            
+
             // 4. 성공: 결과 리포트(AnalysisReport) 생성 및 상태 업데이트
             if (aiResponse.status().equals("success")) {
                 AnalysisReport report = AnalysisReport.builder()
@@ -71,11 +71,11 @@ public class GeoAsyncWorker {
     }
 
     private Map<String, Object> parseJsonMap(String jsonString) throws Exception {
-            // AI 응답에서 JSON 문자열을 Map으로 변환
-            ObjectMapper objectMapper = new ObjectMapper();
-            Map<String, Object> aiResultMap = objectMapper.readValue(jsonString,
-                    new TypeReference<Map<String, Object>>() {
-                    });
-            return aiResultMap;
+        // AI 응답에서 JSON 문자열을 Map으로 변환
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> aiResultMap = objectMapper.readValue(jsonString,
+                new TypeReference<Map<String, Object>>() {
+                });
+        return aiResultMap;
     }
 }
