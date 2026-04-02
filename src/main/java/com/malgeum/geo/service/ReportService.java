@@ -32,7 +32,7 @@ public class ReportService {
             throw new IllegalArgumentException("해당 주문에 대한 접근 권한이 없습니다.");
         }
 
-        AnalysisReport report = analysisReportRepository.findByOrderId(orderId)
+        AnalysisReport report = analysisReportRepository.findByOrder(order)
                 .orElseThrow(() -> new IllegalArgumentException("아직 분석이 완료되지 않았습니다."));
 
         return new ReportResult(order.getId(),

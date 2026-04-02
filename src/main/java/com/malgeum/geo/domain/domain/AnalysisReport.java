@@ -32,7 +32,7 @@ public class AnalysisReport extends BaseTimeEntity {
     @OneToOne(fetch = FetchType.LAZY)
     @MapsId // 주문 엔티티의 id(PK)가 곧 분석결과의 id값과 동일하므로 둘을 매핑
     @JoinColumn(name = "order_id", nullable = false, unique = true)
-    private Order clientOrder;
+    private Order order;
 
     // JSONB 타입으로 저장할 필드들
     @JdbcTypeCode(SqlTypes.JSON) // PostgreSQL의 JSONB 타입을 사용하기 위한 설정
@@ -54,7 +54,7 @@ public class AnalysisReport extends BaseTimeEntity {
 
     @Builder
     public AnalysisReport(Order clientOrder, Map<String, Object> rawScrapedData, Map<String, Object> rawAILog) {
-        this.clientOrder = clientOrder;
+        this.order = clientOrder;
         this.rawScrapedData = rawScrapedData;
         this.rawAILog = rawAILog;
         this.reportStatus = ReportStatus.AVAILABLE;
