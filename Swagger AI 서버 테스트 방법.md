@@ -20,5 +20,5 @@ backend\src\test\java\com\malgeum\geo\serivce\ 에 있는 GeoScrapingServiceTest
 위의 형식에 맞아야합니다! 
 **주의 사항!!!** AI모델에 토큰 한도가 존재합니다. 따라서, 너무 긴 html 본문을 입력하면 원하는 결과물이 안나올 수 있으니 일부 지워서 짧게 만드세요! 
 
-## 4. 제대로 잘 했다면, 바로 아래에 Request 200 이 존재하고, 원하는 GEO 출력값 확인가능!
+## 4. 제대로 잘 했다면, 바로 아래에 Response 200 이 존재하고, 원하는 GEO 출력값 확인가능!
 <img width="1321" height="818" alt="image" src="https://github.com/user-attachments/assets/9ba96f70-a134-4814-b925-7751037af7ed" />
