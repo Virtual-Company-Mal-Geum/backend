@@ -14,6 +14,7 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.malgeum.geo.service.GeoAiService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -43,7 +44,11 @@ public class GeoAIServiceTest {
                 .andRespond(withSuccess(mockJsonResponse, MediaType.APPLICATION_JSON));
 
         // when: 우리가 만든 서비스를 실행합니다! (내부적으로 가짜 서버를 찌르게 됩니다)
-        GeoAiService.GeoEvaluationResponse response = geoAiService.evaluateTarget("http://example.com", "본문 텍스트", "{\"@type\":\"WebPage\"}");
+        ObjectMapper objectMapper = new ObjectMapper();
+        GeoAiService.GeoEvaluationResponse response = geoAiService.evaluateTarget(
+                "http://example.com",
+                "본문 텍스트",
+                objectMapper.createObjectNode().put("@type", "WebPage"));
         
         // then: 결과를 검증합니다.
         assertEquals("success", response.status());

@@ -5,6 +5,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
+
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.web.client.ResourceAccessException;
@@ -24,14 +27,21 @@ public class GeoAiService {
     }
 
     // [의도] 요청/응답 데이터의 불변성을 보장하고 보일러플레이트 코드를 줄이기 위해 Record 사용
-    public record GeoEvaluationRequest(String url, String htmlText, String jsonLd) {
+    public record GeoEvaluationRequest( @JsonProperty("url")
+        String url,
+
+        @JsonProperty("html_text")
+        String htmlText,
+
+        @JsonProperty("json_ld")
+        JsonNode jsonLd) {
     }
 
     public record GeoEvaluationResponse(String status, String result) {
     }
 
     @SuppressWarnings("null")
-    public GeoEvaluationResponse evaluateTarget(String url, String htmlText, String jsonLd) {
+    public GeoEvaluationResponse evaluateTarget(String url, String htmlText, JsonNode jsonLd) {
         // [의도] AI 모델의 컨텍스트 윈도우 초과(OOM)를 방지하기 위해 텍스트 길이 선제적 절삭
         String safeHtmlText = htmlText.length() > 4000 ? htmlText.substring(0, 4000) : htmlText;
         GeoEvaluationRequest request = new GeoEvaluationRequest(url, safeHtmlText, jsonLd);

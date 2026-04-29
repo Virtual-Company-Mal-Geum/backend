@@ -27,6 +27,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	//db/jpa
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	runtimeOnly("org.postgresql:postgresql")
 	implementation("com.h2database:h2")
 	//json
 	implementation ("jakarta.json:jakarta.json-api:2.1.0")
