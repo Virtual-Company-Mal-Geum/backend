@@ -21,6 +21,12 @@ public class Client extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "register_id", nullable = false, length = 50, unique = true)
+    private String registerId;
+
+    @Column(name = "password", length = 255)
+    private String password;
+
     @Column(name = "name", nullable = false, length = 50)
     private String name;
 
@@ -37,7 +43,19 @@ public class Client extends BaseTimeEntity {
     private ClientStatus status;
 
     @Builder
-    public Client(String name, String company, String email, String phone) {
+    public Client(String registerId, String password, String name, String company, String email, String phone) {
+        this.registerId = registerId;
+        this.password = password;
+        this.name = name;
+        this.company = company;
+        this.email = email;
+        this.phone = phone;
+        this.status = ClientStatus.ACTIVE;
+    }
+
+    @Builder
+    public Client(String password, String name, String company, String email, String phone){
+        this.password = password;
         this.name = name;
         this.company = company;
         this.email = email;

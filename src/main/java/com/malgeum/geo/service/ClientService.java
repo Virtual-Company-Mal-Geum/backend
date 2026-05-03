@@ -1,9 +1,13 @@
 package com.malgeum.geo.service;
 
+import java.util.Optional;
+
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.malgeum.geo.domain.domain.Client;
 import com.malgeum.geo.global.common.ClientRepository;
+import com.malgeum.geo.global.common.DataNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -13,14 +17,51 @@ import lombok.RequiredArgsConstructor;
 public class ClientService {
     private final ClientRepository clientRepository;
 
-    public void create(String name, String email, String phone, String company, String targetUrl){
+    public Client create(String registerId, String password, String name, String email, String phone, String company){
         Client client = Client.builder()
+                .registerId(registerId)
+                .password(new BCryptPasswordEncoder().encode(password))
                 .name(name)
                 .email(email)
                 .phone(phone)
                 .company(company)
                 .build();
         clientRepository.save(client);
+        return client;
     }
-    
+
+    public Client create(String registerId, String password, String name, String email){
+        Client client = Client.builder()
+                .registerId(registerId)
+                .password(new BCryptPasswordEncoder().encode(password))
+                .name(name)
+                .email(email)
+                .build();
+        clientRepository.save(client);
+        return client;
+    }
+
+    public Client getClientByRegisterId(String registerId){
+        Optional<Client> _client = this.clientRepository.findByRegisterId(registerId);
+        if(_client.isPresent()) {
+            return _client.get();
+        }
+        throw new DataNotFoundException("registerId not found");
+    }
+
+    public Client getClientByEmail(String email){
+        Optional<Client> _client = this.clientRepository.findByEmail(email);
+        if(_client.isPresent()) {
+            return _client.get();
+        }
+        throw new DataNotFoundException("email not found");
+    }
+
+    public Client socialLogin(String registerId, String name, String email){
+        Optional<Client> _client = this.clientRepository.findByEmail(email);
+        if(_client.isPresent()) {
+            return _client.get();
+        }
+        return this.create(registerId, "", name, email);
+    }
 }

@@ -41,6 +41,8 @@ dependencies {
 	implementation("io.jsonwebtoken:jjwt-api:0.12.5")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.5")
     runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.5")
+	//oauth2
+	implementation ("org.springframework.boot:spring-boot-starter-oauth2-client")
 	//jsoup
 	implementation("org.jsoup:jsoup:1.17.2")
 	//tomcat

@@ -20,6 +20,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         if (clientRepository.findById(1L).isEmpty()) {
             Client testClient = Client.builder()
+                    .registerId("test1234")
                     .company("상상기업 테스트")
                     .name("파트너님")
                     .phone("010-1234-5678")

@@ -27,6 +27,11 @@ public class GeoController {
     public record GeoEvaluationResponse(String message, Long orderId) {
     }
 
+    @GetMapping("/")
+    public ResponseEntity<String> root(){
+        return ResponseEntity.ok("redirect:/home");
+    }
+    
     @PostMapping("/analyze")
     public ResponseEntity<GeoEvaluationResponse> startAnalysis(@RequestBody GeoEvaluationRequest request) {
         Long orderId = orderService.acceptOrder(request.targetUrl());
@@ -40,7 +45,7 @@ public class GeoController {
         return ResponseEntity.ok(report);
     }
 
-    // @PostMapping("/login")
+    // @GetMapping("/login")
     // public ResponseEntity<String> login() {
     // }
 }
