@@ -30,7 +30,7 @@ public class Client extends BaseTimeEntity {
     @Column(name = "name", nullable = false, length = 50)
     private String name;
 
-    @Column(name = "company", nullable = false, length = 100)
+    @Column(name = "company", length = 100)
     private String company;
 
     @Column(name = "email", nullable = false, length = 100)
@@ -67,4 +67,8 @@ public class Client extends BaseTimeEntity {
         ACTIVE, EXPIRED
     }
 
+    public String updatePassword(String password){
+        this.password=password;
+        return password;
+    }
 }

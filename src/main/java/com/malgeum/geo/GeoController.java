@@ -1,6 +1,12 @@
 package com.malgeum.geo;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
+import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -9,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.malgeum.geo.domain.domain.ReportResult;
+import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.OrderService;
 import com.malgeum.geo.service.ReportService;
 
@@ -20,6 +27,7 @@ import lombok.RequiredArgsConstructor;
 public class GeoController {
     private final OrderService orderService;
     private final ReportService reportService;
+    private final AuthService authService;
 
     public record GeoEvaluationRequest(String targetUrl) {
     }
@@ -45,7 +53,21 @@ public class GeoController {
         return ResponseEntity.ok(report);
     }
 
-    // @GetMapping("/login")
-    // public ResponseEntity<String> login() {
-    // }
+    @GetMapping("/login")
+    public ResponseEntity<String> signUp(SignUpForm form){
+        //TODO: 회원가입 페이지 등록
+        return ResponseEntity.ok("signup_form");
+    }
+
+    @PostMapping("/sign-up")
+    public ResponseEntity<?> signup(@RequestBody SignUpForm form,BindingResult bindingResult){
+        authService.signUp(form,bindingResult);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/login")
+    public ResponseEntity<String> login() {
+        //TODO: 로그인 페이지 등록
+        return ResponseEntity.ok("login_form");
+    }
 }
