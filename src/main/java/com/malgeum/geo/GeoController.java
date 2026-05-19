@@ -1,12 +1,7 @@
 package com.malgeum.geo;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.springframework.http.ResponseEntity;
-import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.validation.FieldError;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -53,13 +48,12 @@ public class GeoController {
         return ResponseEntity.ok(report);
     }
 
-    @GetMapping("/login")
+    @GetMapping("/signup")
     public ResponseEntity<String> signUp(SignUpForm form){
-        //TODO: 회원가입 페이지 등록
-        return ResponseEntity.ok("signup_form");
+        return ResponseEntity.ok("geo-signup");
     }
 
-    @PostMapping("/sign-up")
+    @PostMapping("/signUp")
     public ResponseEntity<?> signup(@RequestBody SignUpForm form,BindingResult bindingResult){
         authService.signUp(form,bindingResult);
         return ResponseEntity.ok().build();
@@ -67,7 +61,6 @@ public class GeoController {
 
     @GetMapping("/login")
     public ResponseEntity<String> login() {
-        //TODO: 로그인 페이지 등록
-        return ResponseEntity.ok("login_form");
+        return ResponseEntity.ok("geo-login");
     }
 }
