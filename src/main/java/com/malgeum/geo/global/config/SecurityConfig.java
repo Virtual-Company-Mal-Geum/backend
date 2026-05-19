@@ -5,8 +5,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.context.SecurityContextRepository;
 
 import com.malgeum.geo.global.filter.JwtAuthenticationFilter;
 
@@ -18,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    //private final SecurityContextRepository securityContextRepository;
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
@@ -27,10 +31,13 @@ public class SecurityConfig {
             // CSRF 비활성화 (JWT를 쓰기 때문에 필요 없음)
             .csrf(csrf -> csrf.disable())
             // 폼 로그인 비활성화
-            .formLogin(formLogin -> formLogin.disable())
+            .formLogin(formLogin -> formLogin
+                                        .loginPage("/api/v1/geo/login")
+                                        .defaultSuccessUrl("/")
+            )
             // 3. URL별 인가 규칙 설정 (로그인은 누구나 가능하지만, 나머지 요청들은 모두 인가(jwt)가 필요함)
             .authorizeHttpRequests(auth -> auth
-				.requestMatchers("/api/v1/auth/**").permitAll()
+				.requestMatchers("/api/v1/geo/**").permitAll()
                 .anyRequest().authenticated()
             )
 
@@ -43,4 +50,8 @@ public class SecurityConfig {
         return http.build();
     } 
     
+    @Bean
+    public PasswordEncoder passwordEncoder(){
+        return PasswordEncoderFactories.createDelegatingPasswordEncoder();
+    }
 }
