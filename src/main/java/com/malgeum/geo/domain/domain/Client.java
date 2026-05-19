@@ -4,6 +4,8 @@ import com.malgeum.geo.domain.BaseTimeEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -21,8 +23,8 @@ public class Client extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "register_id", nullable = false, length = 50, unique = true)
-    private String registerId;
+    @Column(name = "email", nullable = false, length = 100, unique = true)
+    private String email;
 
     @Column(name = "password", length = 255)
     private String password;
@@ -33,28 +35,15 @@ public class Client extends BaseTimeEntity {
     @Column(name = "company", length = 100)
     private String company;
 
-    @Column(name = "email", nullable = false, length = 100)
-    private String email;
-
     @Column(name = "phone", nullable = false, length = 20)
     private String phone;
-
+    
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private ClientStatus status;
 
     @Builder
-    public Client(String registerId, String password, String name, String company, String email, String phone) {
-        this.registerId = registerId;
-        this.password = password;
-        this.name = name;
-        this.company = company;
-        this.email = email;
-        this.phone = phone;
-        this.status = ClientStatus.ACTIVE;
-    }
-
-    @Builder
-    public Client(String password, String name, String company, String email, String phone){
+    public Client(String password, String name, String company, String email, String phone) {
         this.password = password;
         this.name = name;
         this.company = company;

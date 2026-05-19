@@ -3,7 +3,6 @@ package com.malgeum.geo.service;
 import java.util.Optional;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 
@@ -19,8 +18,6 @@ import lombok.RequiredArgsConstructor;
 public class AuthService {
 
     private final ClientRepository userRepository;
-
-    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public void signUp(SignUpForm form, BindingResult bindingResult) {
@@ -46,7 +43,6 @@ public class AuthService {
 
         // 사용자 등록
         Client client = Client.builder()
-                .registerId(registerId)
                 .password(new BCryptPasswordEncoder().encode(password2))
                 .name(name)
                 .email(email)

@@ -21,7 +21,6 @@ public class ClientService {
 
     public Client create(String registerId, String password, String name, String email, String phone, String company) {
         Client client = Client.builder()
-                .registerId(registerId)
                 .password(new BCryptPasswordEncoder().encode(password))
                 .name(name)
                 .email(email)
@@ -34,7 +33,6 @@ public class ClientService {
 
     public Client create(String registerId, String password, String name, String email) {
         Client client = Client.builder()
-                .registerId(registerId)
                 .password(new BCryptPasswordEncoder().encode(password))
                 .name(name)
                 .email(email)

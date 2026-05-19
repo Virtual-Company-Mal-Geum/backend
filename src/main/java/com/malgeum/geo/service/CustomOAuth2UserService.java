@@ -17,8 +17,6 @@ import org.springframework.stereotype.Service;
 
 import com.malgeum.geo.domain.domain.Client;
 import com.malgeum.geo.domain.domain.OAuthAccount;
-import com.malgeum.geo.domain.domain.OAuthAccount.Provider;
-
 import jdk.jshell.spi.ExecutionControl;
 
 import jakarta.servlet.http.HttpSession;

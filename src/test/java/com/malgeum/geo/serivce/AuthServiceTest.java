@@ -45,7 +45,7 @@ public class AuthServiceTest {
         form.setRegisterId(registerId);
         form.setPassword1("password123!");
         form.setPassword2("password123!");
-        form.setEmail("test-" + registerId + "@example.com");
+        form.setEmail(registerId + "@example.com");
 
         BindingResult bindingResult = new BeanPropertyBindingResult(form, "signUpForm");
 
@@ -59,6 +59,10 @@ public class AuthServiceTest {
         assertThat(savedClient.get().getEmail()).isEqualTo(form.getEmail());
         assertThat(savedClient.get().getCompany()).isEqualTo(form.getCompany());
         assertThat(savedClient.get().getPhone()).isEqualTo(form.getPhone());
+
+        System.out.println(savedClient.get().getName());
+        System.out.println(savedClient.get().getEmail());
+        System.out.println(savedClient.get().getPassword());
     }
 
     @TestConfiguration

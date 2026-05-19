@@ -15,9 +15,6 @@ public class OAuthAccount {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    
-    @Column(name="register_id",nullable = false, unique = true)
-    private String registerId;
 
     private String password;
 
@@ -35,8 +32,7 @@ public class OAuthAccount {
     }
 
     public OAuthAccount(Client client){
-        this.registerId = client.getRegisterId();
         this.password = client.getPassword();
-        this.email = email;
+        this.email = client.getEmail();
     }
 }
