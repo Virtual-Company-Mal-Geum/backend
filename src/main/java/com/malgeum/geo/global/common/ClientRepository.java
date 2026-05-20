@@ -10,7 +10,5 @@ import com.malgeum.geo.domain.domain.Client;
 public interface ClientRepository extends JpaRepository<Client, Long> {
     List<Client> findByName(String name);
 
-    Optional<Client> findByRegisterId(String registerId);
-
     Optional<Client> findByEmail(String email);
 }

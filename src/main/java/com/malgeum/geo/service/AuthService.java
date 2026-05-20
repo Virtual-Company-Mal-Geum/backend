@@ -25,12 +25,11 @@ public class AuthService {
         String email = form.getEmail();
         String phone = form.getPhone();
         String company = form.getCompany();
-        String registerId = form.getRegisterId();
         String password1 = form.getPassword1();
         String password2 = form.getPassword2();
 
         // 회원 중복 확인
-        Optional<Client> checkUsername = userRepository.findByRegisterId(registerId);
+        Optional<Client> checkUsername = userRepository.findByEmail(email);
         if (checkUsername.isPresent()) {
             throw new IllegalArgumentException("중복된 사용자가 존재합니다.");
         }

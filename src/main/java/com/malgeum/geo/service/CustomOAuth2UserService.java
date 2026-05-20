@@ -59,7 +59,7 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
 			|| registrationId.startsWith("naver")){
             String name = (String) attributes.get("name");
             String email = (String) attributes.get("email");
-            return this.clientService.socialLogin(registrationId, name, email);
+            return this.clientService.socialLogin(name, email);
         }
         throw new ExecutionControl.NotImplementedException("Unsupported registrationId: " + registrationId);
     }

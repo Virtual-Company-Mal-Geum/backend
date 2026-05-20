@@ -36,16 +36,15 @@ public class AuthServiceTest {
     @DisplayName("로그인 폼을 작성하고, 정상적으로 해당 계정이 생성되고 저장까지 완료돼야한다.")
     void signUpFormTest() {
         // given
-        String registerId = "test-user-" + UUID.randomUUID().toString().substring(0, 8);
-
+        String email = "test-"+UUID.randomUUID().toString().substring(0, 8)+"@example.com";
+        
         SignUpForm form = new SignUpForm();
         form.setName("테스트 사용자");
         form.setCompany("malgeum");
         form.setPhone("01012345678");
-        form.setRegisterId(registerId);
         form.setPassword1("password123!");
         form.setPassword2("password123!");
-        form.setEmail(registerId + "@example.com");
+        form.setEmail(email);
 
         BindingResult bindingResult = new BeanPropertyBindingResult(form, "signUpForm");
 
@@ -53,7 +52,7 @@ public class AuthServiceTest {
         authService.signUp(form, bindingResult);
 
         // then
-        Optional<Client> savedClient = clientRepository.findByRegisterId(registerId);
+        Optional<Client> savedClient = clientRepository.findByEmail(email);
         assertThat(savedClient).isPresent();
         assertThat(savedClient.get().getName()).isEqualTo(form.getName());
         assertThat(savedClient.get().getEmail()).isEqualTo(form.getEmail());

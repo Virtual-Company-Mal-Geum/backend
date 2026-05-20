@@ -10,6 +10,7 @@ import com.malgeum.geo.domain.domain.Client;
 import com.malgeum.geo.global.common.ClientRepository;
 import com.malgeum.geo.global.common.DataNotFoundException;
 
+import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 
 @SuppressWarnings("null")
@@ -19,7 +20,7 @@ public class ClientService {
     private final ClientRepository clientRepository;
     private final PasswordEncoder passwordEncoder;
 
-    public Client create(String registerId, String password, String name, String email, String phone, String company) {
+    public Client create(String password, String name, String email, String phone, String company) {
         Client client = Client.builder()
                 .password(new BCryptPasswordEncoder().encode(password))
                 .name(name)
@@ -31,22 +32,14 @@ public class ClientService {
         return client;
     }
 
-    public Client create(String registerId, String password, String name, String email) {
+    public Client createOAuthClient(String name, String email) {
         Client client = Client.builder()
-                .password(new BCryptPasswordEncoder().encode(password))
+                .password(null)
                 .name(name)
                 .email(email)
                 .build();
         clientRepository.save(client);
         return client;
-    }
-
-    public Client getClientByRegisterId(String registerId) {
-        Optional<Client> _client = this.clientRepository.findByRegisterId(registerId);
-        if (_client.isPresent()) {
-            return _client.get();
-        }
-        throw new DataNotFoundException("registerId not found");
     }
 
     public Client getClientByEmail(String email) {
@@ -67,11 +60,11 @@ public class ClientService {
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 
-    public Client socialLogin(String registerId, String name, String email) {
+    public Client socialLogin(String name, String email) {
         Optional<Client> _client = this.clientRepository.findByEmail(email);
         if (_client.isPresent()) {
             return _client.get();
         }
-        return this.create(registerId, "", name, email);
+        return this.createOAuthClient(name,email);
     }
 }
