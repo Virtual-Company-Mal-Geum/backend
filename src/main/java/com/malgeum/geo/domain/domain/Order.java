@@ -33,6 +33,9 @@ public class Order extends BaseTimeEntity {
     @Column(name = "target_url", nullable = false, length = 2048)
     private String targetUrl;
 
+    @Column(name = "categoryStatus", nullable = false)
+    private CategoryStatus categoryStatus;
+
     @Column(name = "resource_key", nullable = false, length = 36, unique = true)
     private String resourceKey; // Java의 UUID를 String으로 변환해서 저장
 
@@ -44,11 +47,12 @@ public class Order extends BaseTimeEntity {
     // private PaymentMeans paymentMeans;
 
     @Builder
-    public Order(Client client, String targetUrl) {
+    public Order(Client client, String targetUrl, CategoryStatus categoryStatus) {
         this.client = client;
         this.targetUrl = targetUrl;
         this.resourceKey = UUID.randomUUID().toString();
         this.jobStatus = JobStatus.PENDING;
+        this.categoryStatus = CategoryStatus.ETC;
     }
 
     // 상태 변경을 위한 의미 있는 비즈니스 메서드 (단순 Setter 지양)
@@ -59,5 +63,10 @@ public class Order extends BaseTimeEntity {
     public enum JobStatus {
         // 대기중, 처리중, 성공, 실패
         PENDING, PROCESSING, SUCCESS, FAILED
+    }
+
+    public enum CategoryStatus{
+        //뉴스, 이커머스(쇼핑), 교육, 기술 블로그, 기타
+        NEWS, ECOMMERCE, EDUCATION, TECHBLOG, ETC
     }
 }

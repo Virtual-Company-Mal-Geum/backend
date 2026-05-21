@@ -5,6 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.malgeum.geo.domain.domain.Client;
 import com.malgeum.geo.domain.domain.Order;
+import com.malgeum.geo.domain.domain.Order.CategoryStatus;
 import com.malgeum.geo.global.common.ClientRepository;
 import com.malgeum.geo.global.common.OrderRepository;
 
@@ -22,14 +23,14 @@ public class OrderService {
 
     @SuppressWarnings("null")
     @Transactional
-    public Long acceptOrder(String targetUrl) {
+    public Long acceptOrder(String targetUrl,CategoryStatus categoryStatus) {
         // 1. JWT 필터를 통과한 현재 로그인 고객사 ID 가져오기
         String clientIdStr = SecurityContextHolder.getContext().getAuthentication().getName();
         Long clientId = Long.valueOf(clientIdStr);
 
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 고객사입니다."));
-        Order savedOrder = orderRepository.save(createOrder(client, targetUrl));
+        Order savedOrder = orderRepository.save(createOrder(client, targetUrl, categoryStatus));
         log.info("[OrderService] 새로운 분석 주문 접수 완료 - OrderID: {}", savedOrder.getId());
 
         // 3. ⭐️ 핵심: 비동기 워커에게 "이 주문번호(orderId)랑 URL 가지고 가서 일해!" 라고 던짐
@@ -39,10 +40,11 @@ public class OrderService {
     }
 
     // 2. 주문서 생성 (초기 상태: PENDING)
-    public Order createOrder(Client client, String targetUrl) {
+    public Order createOrder(Client client, String targetUrl,CategoryStatus categoryStatus) {
         Order order = Order.builder()
                 .client(client)
                 .targetUrl(targetUrl)
+                .categoryStatus(categoryStatus)
                 .build();
         return order;
     }

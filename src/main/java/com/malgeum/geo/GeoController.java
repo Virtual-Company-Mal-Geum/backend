@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.malgeum.geo.domain.domain.ReportResult;
+import com.malgeum.geo.domain.domain.Order.CategoryStatus;
 import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.OrderService;
 import com.malgeum.geo.service.ReportService;
@@ -24,7 +25,7 @@ public class GeoController {
     private final ReportService reportService;
     private final AuthService authService;
 
-    public record GeoEvaluationRequest(String targetUrl) {
+    public record GeoEvaluationRequest(String targetUrl,CategoryStatus categoryStatus) {
     }
 
     public record GeoEvaluationResponse(String message, Long orderId) {
@@ -37,7 +38,7 @@ public class GeoController {
     
     @PostMapping("/analyze")
     public ResponseEntity<GeoEvaluationResponse> startAnalysis(@RequestBody GeoEvaluationRequest request) {
-        Long orderId = orderService.acceptOrder(request.targetUrl());
+        Long orderId = orderService.acceptOrder(request.targetUrl(),request.categoryStatus());
         return ResponseEntity.accepted()
                 .body(new GeoEvaluationResponse("GEO 분석 요청이 성공적으로 접수되었습니다.", orderId));
     }
