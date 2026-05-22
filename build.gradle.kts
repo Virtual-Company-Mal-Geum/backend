@@ -46,6 +46,7 @@ dependencies {
 	implementation ("org.springframework.boot:spring-boot-starter-oauth2-client")
 	//jsoup
 	implementation("org.jsoup:jsoup:1.17.2")
+	implementation("com.fasterxml.jackson.core:jackson-databind")
 	//tomcat
 	implementation("org.apache.tomcat.embed:tomcat-embed-core")
 }

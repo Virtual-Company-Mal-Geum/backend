@@ -16,8 +16,6 @@ public class OAuthAccount {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String password;
-
     @Column(name="email",nullable = false, length = 20,unique = true)
     private String email;
 
@@ -32,7 +30,6 @@ public class OAuthAccount {
     }
 
     public OAuthAccount(Client client){
-        this.password = client.getPassword();
         this.email = client.getEmail();
     }
 }

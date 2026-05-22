@@ -27,7 +27,8 @@ public class GeoAiService {
     }
 
     // [의도] 요청/응답 데이터의 불변성을 보장하고 보일러플레이트 코드를 줄이기 위해 Record 사용
-    public record GeoEvaluationRequest( @JsonProperty("url")
+    public record GeoEvaluationRequest( 
+        @JsonProperty("url")
         String url,
 
         @JsonProperty("html_text")

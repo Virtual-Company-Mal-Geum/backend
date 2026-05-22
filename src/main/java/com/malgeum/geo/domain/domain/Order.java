@@ -6,6 +6,8 @@ import com.malgeum.geo.domain.BaseTimeEntity;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -33,12 +35,14 @@ public class Order extends BaseTimeEntity {
     @Column(name = "target_url", nullable = false, length = 2048)
     private String targetUrl;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "categoryStatus", nullable = false)
     private CategoryStatus categoryStatus;
 
     @Column(name = "resource_key", nullable = false, length = 36, unique = true)
     private String resourceKey; // Java의 UUID를 String으로 변환해서 저장
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "job_status", nullable = false, length = 20)
     private JobStatus jobStatus;
 
