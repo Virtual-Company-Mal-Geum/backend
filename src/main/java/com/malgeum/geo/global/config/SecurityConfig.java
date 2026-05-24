@@ -6,6 +6,7 @@ import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -37,11 +38,16 @@ public class SecurityConfig {
             // 쿠키 기반 세션 로그인에서 중요한 보안 기능인 CSRF 비활성화 (JWT를 쓰기 때문에 필요 없음)
             .csrf(csrf -> csrf.disable())
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            // 폼 로그인 비활성화
             .formLogin(formLogin -> formLogin
                                         .loginPage("/api/v1/geo/login")
                                         .defaultSuccessUrl("/")
             )
+            .logout(logout -> logout
+                                .logoutUrl("/api/v1/geo/logout")
+                                .logoutSuccessUrl("/api/v1/geo/")
+                                .invalidateHttpSession(true)
+            )
+            .oauth2Login((Customizer.withDefaults()))
             // 3. URL별 인가 규칙 설정 (로그인은 누구나 가능하지만, 나머지 요청들은 모두 인가(jwt)가 필요함)
             .authorizeHttpRequests(auth -> auth
 				.requestMatchers(HttpMethod.OPTIONS,"/**").permitAll()
