@@ -20,7 +20,7 @@ public class AuthService {
     private final ClientRepository userRepository;
 
     @Transactional
-    public void signUp(SignUpForm form, BindingResult bindingResult) {
+    public void signup(SignUpForm form, BindingResult bindingResult) {
         String name = form.getName();
         String email = form.getEmail();
         String phone = form.getPhone();

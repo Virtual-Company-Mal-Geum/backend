@@ -6,7 +6,7 @@ import lombok.Setter;
 
 @Getter
 @Setter
-public class UserUpdateForm {
+public class ClientUpdateForm {
 	@NotEmpty(message = "기존 비밀번호는 필수항목입니다.")
 	private String originPassword;
 	
