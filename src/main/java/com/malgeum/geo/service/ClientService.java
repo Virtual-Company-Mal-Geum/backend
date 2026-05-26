@@ -7,10 +7,10 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import com.malgeum.geo.domain.domain.Client;
+import com.malgeum.geo.domain.domain.Client.OAuthProvider;
 import com.malgeum.geo.global.common.ClientRepository;
 import com.malgeum.geo.global.common.DataNotFoundException;
 
-import jakarta.validation.constraints.Null;
 import lombok.RequiredArgsConstructor;
 
 @SuppressWarnings("null")
@@ -32,11 +32,15 @@ public class ClientService {
         return client;
     }
 
-    public Client createOAuthClient(String name, String email) {
+    public Client createOAuthClient(String name, String email,String providerId,OAuthProvider provider) {
         Client client = Client.builder()
-                .password(null)
+                .password("")
                 .name(name)
                 .email(email)
+                .providerId(providerId)
+                .provider(provider)
+                .phone(null)
+                .company(null)
                 .build();
         clientRepository.save(client);
         return client;
@@ -60,11 +64,11 @@ public class ClientService {
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 
-    public Client socialLogin(String name, String email) {
+    public Client socialLogin(String name, String email,String providerId,OAuthProvider provider) {
         Optional<Client> _client = this.clientRepository.findByEmail(email);
         if (_client.isPresent()) {
             return _client.get();
         }
-        return this.createOAuthClient(name,email);
+        return this.createOAuthClient(name,email,providerId,provider);
     }
 }

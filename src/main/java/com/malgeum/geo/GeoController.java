@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.malgeum.geo.domain.domain.ReportResult;
 import com.malgeum.geo.domain.domain.Order.CategoryStatus;
-import com.malgeum.geo.global.ClientUpdateForm;
 import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.OrderService;
 import com.malgeum.geo.service.ReportService;
@@ -45,7 +44,7 @@ public class GeoController {
                 .body(new GeoEvaluationResponse("GEO 분석 요청이 성공적으로 접수되었습니다.", orderId));
     }
 
-    //TODO:분석 완료 후, AI서버로부터 온 결과물 받고 처리 (AI서버->)
+    //TODO:분석 완료 후, AI서버로부터 온 결과물 받고 처리 (AI서버->백엔드)
 
     //AI 분석 결과 조회 (백엔드->프론트)
     @GetMapping("/report/{orderId}")
@@ -60,9 +59,9 @@ public class GeoController {
         return ResponseEntity.ok("geo-signup");
     }
 
-    @PostMapping("/signUp")
+    @PostMapping("/signup")
     public ResponseEntity<?> signup(@RequestBody SignUpForm form,BindingResult bindingResult){
-        authService.signUp(form,bindingResult);
+        authService.signup(form,bindingResult);
         return ResponseEntity.ok().build();
     }
 
