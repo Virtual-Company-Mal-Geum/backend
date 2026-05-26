@@ -35,9 +35,15 @@ public class Client extends BaseTimeEntity {
     @Column(name = "company", length = 100)
     private String company;
 
-    @Column(name = "phone", nullable = false, length = 20)
+    @Column(name = "phone", length = 20)
     private String phone;
+
+    @Column(name="provider_id")
+    private String providerId;
     
+    @Enumerated(EnumType.STRING)
+    private OAuthProvider provider;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private ClientStatus status;
@@ -52,12 +58,33 @@ public class Client extends BaseTimeEntity {
         this.status = ClientStatus.ACTIVE;
     }
 
+    @Builder
+    public Client(String password, String name, String company, String email, String phone, String providerId, OAuthProvider provider) {
+        this.password = password;
+        this.name = name;
+        this.company = company;
+        this.email = email;
+        this.phone = phone;
+        this.providerId=providerId;
+        this.provider=OAuthProvider.GOOGLE;
+        this.status = ClientStatus.ACTIVE;
+    }
+
     public enum ClientStatus {
         ACTIVE, EXPIRED
+    }
+
+    public enum OAuthProvider {
+        GOOGLE
     }
 
     public String updatePassword(String password){
         this.password=password;
         return password;
+    }
+
+    public void linkOAuth(OAuthProvider provider, String providerId) {
+        this.provider = provider;
+        this.providerId = providerId;
     }
 }

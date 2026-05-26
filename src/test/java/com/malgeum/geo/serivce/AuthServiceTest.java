@@ -49,7 +49,7 @@ public class AuthServiceTest {
         BindingResult bindingResult = new BeanPropertyBindingResult(form, "signUpForm");
 
         // when
-        authService.signUp(form, bindingResult);
+        authService.signup(form, bindingResult);
 
         // then
         Optional<Client> savedClient = clientRepository.findByEmail(email);
