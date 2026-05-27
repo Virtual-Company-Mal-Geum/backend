@@ -1,5 +1,7 @@
 package com.malgeum.geo.domain.domain;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.UUID;
 
 import com.malgeum.geo.domain.BaseTimeEntity;
@@ -28,40 +30,83 @@ public class Order extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY) // 실무에서 N+1 문제를 막기 위한 절대 규칙: 무조건 LAZY!
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "client_id", nullable = false)
     private Client client;
 
     @Column(name = "target_url", nullable = false, length = 2048)
     private String targetUrl;
 
+    @Column(name = "site_name", nullable = false, length = 255)
+    private String siteName;
+
+    @Column(name = "service_type", nullable = false, length = 100)
+    private String serviceType;
+
+    @Column(name = "target_engine", length = 100)
+    private String targetEngine;
+
+    @Column(name = "analysis_items", columnDefinition = "TEXT")
+    private String analysisItems;
+
+    @Column(name = "contact_name", length = 100)
+    private String contactName;
+
+    @Column(name = "contact_phone", length = 50)
+    private String contactPhone;
+
+    @Column(name = "contact_email", length = 255)
+    private String contactEmail;
+
+    @Column(name = "contact_org", length = 255)
+    private String contactOrg;
+
+    @Column(name = "memo", columnDefinition = "TEXT")
+    private String memo;
+
     @Enumerated(EnumType.STRING)
-    @Column(name = "categoryStatus", nullable = false)
+    @Column(name = "category_status", nullable = false)
     private CategoryStatus categoryStatus;
 
     @Column(name = "resource_key", nullable = false, length = 36, unique = true)
-    private String resourceKey; // Java의 UUID를 String으로 변환해서 저장
+    private String resourceKey;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "job_status", nullable = false, length = 20)
     private JobStatus jobStatus;
 
-    // 결제 수단과 상태는 미정
-    // private PaymentStatus paymentStatus;
-    // private PaymentMeans paymentMeans;
-
     @Builder
-    public Order(Client client, String targetUrl, CategoryStatus categoryStatus) {
+    public Order(Client client, String targetUrl, String siteName, String serviceType, String targetEngine,
+            String htmlText, String jsonLd, String analysisItems, String contactName, String contactPhone,
+            String contactEmail, String contactOrg, String memo, CategoryStatus categoryStatus) {
         this.client = client;
         this.targetUrl = targetUrl;
+        this.siteName = siteName;
+        this.serviceType = serviceType;
+        this.targetEngine = targetEngine;
+        this.analysisItems = analysisItems;
+        this.contactName = contactName;
+        this.contactPhone = contactPhone;
+        this.contactEmail = contactEmail;
+        this.contactOrg = contactOrg;
+        this.memo = memo;
         this.resourceKey = UUID.randomUUID().toString();
         this.jobStatus = JobStatus.PENDING;
-        this.categoryStatus = CategoryStatus.ETC;
+        this.categoryStatus = categoryStatus == null ? CategoryStatus.ETC : categoryStatus;
     }
 
-    // 상태 변경을 위한 의미 있는 비즈니스 메서드 (단순 Setter 지양)
     public void updateStatus(JobStatus newStatus) {
         this.jobStatus = newStatus;
+    }
+
+    public List<String> getAnalysisItemList() {
+        if (analysisItems == null || analysisItems.isBlank()) {
+            return List.of();
+        }
+        return Arrays.stream(analysisItems.split("\\|\\|"))
+                .map(String::trim)
+                .filter(item -> !item.isBlank())
+                .toList();
     }
 
     public enum JobStatus {
@@ -69,29 +114,33 @@ public class Order extends BaseTimeEntity {
         PENDING, PROCESSING, SUCCESS, FAILED
     }
 
-    public enum CategoryStatus{
-        //뉴스, 이커머스(쇼핑), 교육, 기술 블로그, 기타
-        NEWS{
+    public enum CategoryStatus {
+        // 뉴스, 이커머스(쇼핑), 교육, 기술 블로그, 기타
+        NEWS {
             @Override
             public String toString() {
                 return "news";
             }
-        }, ECOMMERCE{
+        },
+        ECOMMERCE {
             @Override
             public String toString() {
                 return "ecommerce";
             }
-        }, EDUCATION{
+        },
+        EDUCATION {
             @Override
             public String toString() {
                 return "education";
             }
-        }, TECHBLOG{
+        },
+        TECHBLOG {
             @Override
             public String toString() {
                 return "tech_blog";
             }
-        }, ETC{
+        },
+        ETC {
             @Override
             public String toString() {
                 return "etc";

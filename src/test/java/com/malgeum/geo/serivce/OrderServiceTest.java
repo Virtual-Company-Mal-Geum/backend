@@ -13,6 +13,7 @@ import org.springframework.context.annotation.Import;
 import com.malgeum.geo.domain.domain.Client;
 import com.malgeum.geo.domain.domain.Order;
 import com.malgeum.geo.domain.domain.Order.CategoryStatus;
+import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.global.common.ClientRepository;
 import com.malgeum.geo.global.common.OrderRepository;
 import com.malgeum.geo.service.OrderService;
@@ -38,7 +39,8 @@ public class OrderServiceTest {
         String targetUrl = "https://biztoss.co.kr/";
         Optional<Client> savedClient = clientRepository.findById(1L);
         assertThat(savedClient.isPresent());
-        Order newOrder = orderService.createOrder(savedClient.get(), targetUrl, Order.CategoryStatus.ECOMMERCE);
+        GeoOrderRequest orderRequest = GeoOrderRequest.from(targetUrl,"비즈토스","커머스");
+        Order newOrder = orderService.createOrder(savedClient.get(),orderRequest);
         // when
         orderRepository.save(newOrder);
         // then
