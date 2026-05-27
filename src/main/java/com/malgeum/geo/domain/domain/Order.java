@@ -71,6 +71,31 @@ public class Order extends BaseTimeEntity {
 
     public enum CategoryStatus{
         //뉴스, 이커머스(쇼핑), 교육, 기술 블로그, 기타
-        NEWS, ECOMMERCE, EDUCATION, TECHBLOG, ETC
+        NEWS{
+            @Override
+            public String toString() {
+                return "news";
+            }
+        }, ECOMMERCE{
+            @Override
+            public String toString() {
+                return "ecommerce";
+            }
+        }, EDUCATION{
+            @Override
+            public String toString() {
+                return "education";
+            }
+        }, TECHBLOG{
+            @Override
+            public String toString() {
+                return "tech_blog";
+            }
+        }, ETC{
+            @Override
+            public String toString() {
+                return "etc";
+            }
+        }
     }
 }

@@ -49,6 +49,8 @@ dependencies {
 	implementation("com.fasterxml.jackson.core:jackson-databind")
 	//tomcat
 	implementation("org.apache.tomcat.embed:tomcat-embed-core")
+	//playwright
+	implementation("com.microsoft.playwright:playwright:1.60.0")
 }
 
 tasks.withType<Test> {

@@ -6,7 +6,7 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import com.fasterxml.jackson.databind.JsonNode;
+import com.malgeum.geo.domain.ScrapedData;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -15,6 +15,7 @@ import org.springframework.web.client.ResourceAccessException;
 @Slf4j
 @Service
 public class GeoAiService {
+
     private final RestClient restClient;
 
     public GeoAiService(RestClient.Builder restClientBuilder) {
@@ -31,22 +32,31 @@ public class GeoAiService {
         @JsonProperty("url")
         String url,
 
+        @JsonProperty("category")
+        String category,
+
         @JsonProperty("html_text")
         String htmlText,
 
         @JsonProperty("json_ld")
-        JsonNode jsonLd) {
+        String jsonLd) {
+            public static GeoEvaluationRequest from(ScrapedData scrapedData) {
+                ScrapedData normalized = scrapedData.normalized();
+                return new GeoEvaluationRequest(
+                        normalized.url(),
+                        normalized.category(),
+                        normalized.htmlText(),
+                        normalized.jsonLd()
+                );
+            }
     }
+    
 
     public record GeoEvaluationResponse(String status, String result) {
     }
 
-    @SuppressWarnings("null")
-    public GeoEvaluationResponse evaluateTarget(String url, String htmlText, JsonNode jsonLd) {
-        // [의도] AI 모델의 컨텍스트 윈도우 초과(OOM)를 방지하기 위해 텍스트 길이 선제적 절삭
-        String safeHtmlText = htmlText.length() > 4000 ? htmlText.substring(0, 4000) : htmlText;
-        GeoEvaluationRequest request = new GeoEvaluationRequest(url, safeHtmlText, jsonLd);
-        log.info("[GeoAiService] AI 서버로 분석 요청을 전송합니다. URL: {}", url);
+    public GeoEvaluationResponse evaluateTarget(GeoEvaluationRequest request) {
+        log.info("[GeoAiService] AI 서버로 분석 요청을 전송합니다. URL: {}", request.url());
 
         try {
             return restClient.post()

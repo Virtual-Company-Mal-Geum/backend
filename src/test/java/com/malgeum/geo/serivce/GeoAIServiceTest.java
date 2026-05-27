@@ -14,8 +14,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.malgeum.geo.domain.ScrapedData;
 import com.malgeum.geo.service.GeoAiService;
+import com.malgeum.geo.service.GeoAiService.GeoEvaluationRequest;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -43,12 +44,13 @@ public class GeoAIServiceTest {
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andRespond(withSuccess(mockJsonResponse, MediaType.APPLICATION_JSON));
 
-        // when: 우리가 만든 서비스를 실행합니다! (내부적으로 가짜 서버를 찌르게 됩니다)
-        ObjectMapper objectMapper = new ObjectMapper();
-        GeoAiService.GeoEvaluationResponse response = geoAiService.evaluateTarget(
+        // when: 스크래핑 없이 요청 DTO만 구성해 AI 클라이언트 동작을 검증합니다.
+        ScrapedData scrapedData = new ScrapedData(
                 "http://example.com",
+                "ECOMMERCE",
                 "본문 텍스트",
-                objectMapper.createObjectNode().put("@type", "WebPage"));
+                "[]");
+        GeoAiService.GeoEvaluationResponse response = geoAiService.evaluateTarget(GeoEvaluationRequest.from(scrapedData));
         
         // then: 결과를 검증합니다.
         assertEquals("success", response.status());

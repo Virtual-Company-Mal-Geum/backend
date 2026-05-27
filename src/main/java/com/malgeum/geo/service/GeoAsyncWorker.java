@@ -10,8 +10,9 @@ import com.malgeum.geo.domain.domain.AnalysisReport;
 import com.malgeum.geo.domain.domain.Order;
 import com.malgeum.geo.global.common.AnalysisReportRepository;
 import com.malgeum.geo.global.common.OrderRepository;
+import com.malgeum.geo.domain.ScrapedData;
+import com.malgeum.geo.service.GeoAiService.GeoEvaluationRequest;
 import com.malgeum.geo.service.GeoAiService.GeoEvaluationResponse;
-import com.malgeum.geo.service.GeoScrapingService.ScrapedData;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -44,10 +45,9 @@ public class GeoAsyncWorker {
             order.updateStatus(Order.JobStatus.PROCESSING);
             String targetUrl = order.getTargetUrl();
             // 2. Jsoup 스크래핑 실행 (부품 1)
-            ScrapedData scrapedData = geoScrapingService.extractDataForAi(targetUrl);
+            ScrapedData scrapedData = geoScrapingService.extractDataForAi(targetUrl, order.getCategoryStatus());
             // 3. AI 서버에 평가 요청 (부품 2)
-            GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(targetUrl, scrapedData.htmlText(),
-                    scrapedData.jsonLd());
+            GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(GeoEvaluationRequest.from(scrapedData));
 
             // 4. 성공: 결과 리포트(AnalysisReport) 생성 및 상태 업데이트
             if (aiResponse.status().equals("success")) {
