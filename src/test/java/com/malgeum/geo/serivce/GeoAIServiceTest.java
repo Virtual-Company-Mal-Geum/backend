@@ -14,9 +14,10 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.client.MockRestServiceServer;
 
-import com.malgeum.geo.domain.ScrapedData;
+import com.malgeum.geo.dto.GeoEvaluationRequest;
+import com.malgeum.geo.dto.GeoEvaluationResponse;
+import com.malgeum.geo.dto.ScrapedData;
 import com.malgeum.geo.service.GeoAiService;
-import com.malgeum.geo.service.GeoAiService.GeoEvaluationRequest;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -50,11 +51,12 @@ public class GeoAIServiceTest {
                 "ECOMMERCE",
                 "본문 텍스트",
                 "[]");
-        GeoAiService.GeoEvaluationResponse response = geoAiService.evaluateTarget(GeoEvaluationRequest.from(scrapedData));
+        GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
+        GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
         
         // then: 결과를 검증합니다.
-        assertEquals("success", response.status());
-        assertEquals("총점 95점! 훌륭합니다.", response.result());
+        assertEquals("success", aiResponse.status());
+        assertEquals("총점 95점! 훌륭합니다.", aiResponse.result());
         mockServer.verify(); // 가짜 서버가 예상대로 호출되었는지 검증
     }
 

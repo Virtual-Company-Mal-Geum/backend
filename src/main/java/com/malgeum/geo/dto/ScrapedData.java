@@ -1,4 +1,4 @@
-package com.malgeum.geo.domain;
+package com.malgeum.geo.dto;
 
 public record ScrapedData(
         String url,

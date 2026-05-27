@@ -14,8 +14,8 @@ import com.sun.net.httpserver.HttpServer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.malgeum.geo.domain.ScrapedData;
 import com.malgeum.geo.domain.domain.Order.CategoryStatus;
+import com.malgeum.geo.dto.ScrapedData;
 import com.malgeum.geo.service.GeoScrapingService;
 
 import lombok.extern.slf4j.Slf4j;

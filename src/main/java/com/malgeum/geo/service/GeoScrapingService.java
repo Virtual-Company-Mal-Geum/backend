@@ -3,8 +3,8 @@ package com.malgeum.geo.service;
 import java.io.IOException;
 import java.util.stream.Collectors;
 
-import com.malgeum.geo.domain.ScrapedData;
 import com.malgeum.geo.domain.domain.Order.CategoryStatus;
+import com.malgeum.geo.dto.ScrapedData;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
