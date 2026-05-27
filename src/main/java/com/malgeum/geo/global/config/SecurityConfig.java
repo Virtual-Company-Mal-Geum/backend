@@ -87,7 +87,10 @@ public class SecurityConfig {
         // 이용하려는 Origins가 있다면, 어떤 것을 허가 해줄지?
         config.setAllowedOrigins(List.of(
                 "http://localhost:5500",
-                "http://127.0.0.1:5500"));
+                "http://127.0.0.1:5500",
+                "http://localhost:3000",
+                "http://127.0.0.1:3000"
+        ));
 
         // 요청 메시지에서 어떤 HTTP METHOD만 허용할지?
         config.setAllowedMethods(List.of(
