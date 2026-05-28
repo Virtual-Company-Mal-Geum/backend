@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +42,7 @@ public class GeoAIServiceTest {
     public void evaluateTarget_ShouldReturnSuccess() {
         // given: 가짜 파이썬 서버가 "/evaluate" 요청을 받으면 어떻게 응답할지 대본을 짭니다.
         String mockJsonResponse = "{\"status\": \"success\", \"result\": \"총점 95점! 훌륭합니다.\"}";
-        mockServer.expect(requestTo("http://localhost:8000/evaluate"))
+        mockServer.expect(requestTo("http://localhost:8888/evaluate"))
                 .andExpect(method(HttpMethod.POST))
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andRespond(withSuccess(mockJsonResponse, MediaType.APPLICATION_JSON));
@@ -50,7 +52,8 @@ public class GeoAIServiceTest {
                 "http://example.com",
                 "ECOMMERCE",
                 "본문 텍스트",
-                "[]");
+                "[]",
+            Map.of());
         GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
         GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
         
