@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-import com.malgeum.geo.domain.domain.Order.CategoryStatus;
+import com.malgeum.geo.domain.domain.Order.DomainStatus;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.dto.GeoOrderResponse;

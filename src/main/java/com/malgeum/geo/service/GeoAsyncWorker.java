@@ -12,7 +12,6 @@ import com.malgeum.geo.domain.domain.AnalysisReport;
 import com.malgeum.geo.domain.domain.Order;
 import com.malgeum.geo.dto.GeoEvaluationRequest;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
-import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.dto.ScrapedData;
 import com.malgeum.geo.global.common.AnalysisReportRepository;
 import com.malgeum.geo.global.common.OrderRepository;
@@ -45,8 +44,8 @@ public class GeoAsyncWorker {
             order = orderRepository.findById(orderId).orElseThrow();
             order.updateStatus(Order.JobStatus.PROCESSING);
 
-            ScrapedData scrapedData = geoScrapingService.extractDataForAi(order.getTargetUrl(), order.getCategoryStatus());
-            GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(order, scrapedData);
+            ScrapedData scrapedData = geoScrapingService.extractDataForAi(order.getTargetUrl(), order.getDomainStatus());
+            GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
             GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
 
             if ("success".equals(aiResponse.status())) {

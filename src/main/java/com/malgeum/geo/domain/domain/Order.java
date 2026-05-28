@@ -65,8 +65,8 @@ public class Order extends BaseTimeEntity {
     private String memo;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "category_status", nullable = false)
-    private CategoryStatus categoryStatus;
+    @Column(name = "domain_status", nullable = false)
+    private DomainStatus domainStatus;
 
     @Column(name = "resource_key", nullable = false, length = 36, unique = true)
     private String resourceKey;
@@ -78,7 +78,7 @@ public class Order extends BaseTimeEntity {
     @Builder
     public Order(Client client, String targetUrl, String siteName, String serviceType, String targetEngine,
             String htmlText, String jsonLd, String analysisItems, String contactName, String contactPhone,
-            String contactEmail, String contactOrg, String memo, CategoryStatus categoryStatus) {
+            String contactEmail, String contactOrg, String memo, DomainStatus domainStatus) {
         this.client = client;
         this.targetUrl = targetUrl;
         this.siteName = siteName;
@@ -92,7 +92,7 @@ public class Order extends BaseTimeEntity {
         this.memo = memo;
         this.resourceKey = UUID.randomUUID().toString();
         this.jobStatus = JobStatus.PENDING;
-        this.categoryStatus = categoryStatus == null ? CategoryStatus.ETC : categoryStatus;
+        this.domainStatus = domainStatus == null ? DomainStatus.ETC : domainStatus;
     }
 
     public void updateStatus(JobStatus newStatus) {
@@ -114,7 +114,7 @@ public class Order extends BaseTimeEntity {
         PENDING, PROCESSING, SUCCESS, FAILED
     }
 
-    public enum CategoryStatus {
+    public enum DomainStatus {
         // 뉴스, 이커머스(쇼핑), 교육, 기술 블로그, 기타
         NEWS {
             @Override

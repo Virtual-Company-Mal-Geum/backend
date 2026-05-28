@@ -14,7 +14,7 @@ import com.sun.net.httpserver.HttpServer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.malgeum.geo.domain.domain.Order.CategoryStatus;
+import com.malgeum.geo.domain.domain.Order.DomainStatus;
 import com.malgeum.geo.dto.ScrapedData;
 import com.malgeum.geo.service.GeoScrapingService;
 
@@ -31,11 +31,11 @@ public class GeoScrapingServiceTest {
         // given: 타겟 URL 설정
         // 정적 페이지 : https://www.apple.com/kr/shop/buy-iphone/iphone-17-pro
         // 동적 페이지 : https://www.instagram.com/p/DYzfA56jQ2f/
-        String url = "https://www.instagram.com/p/DYzfA56jQ2f/";
+        String url = "https://www.instagram.com/p/DY3t9qdkRNY/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==";
 
         // when: 스크래핑 서비스 실행
         long startTime = System.currentTimeMillis();
-        ScrapedData result = geoScrapingService.extractDataForAi(url, CategoryStatus.ECOMMERCE);
+        ScrapedData result = geoScrapingService.extractDataForAi(url, DomainStatus.ECOMMERCE);
         long endTime = System.currentTimeMillis();
 
         // then: 결과 검증
@@ -62,15 +62,15 @@ public class GeoScrapingServiceTest {
         ObjectMapper objectMapper = new ObjectMapper();
         String url = "https://www.apple.com/kr/shop/buy-iphone/iphone-17-pro";
 
-        ScrapedData result = geoScrapingService.extractDataForAi(url, CategoryStatus.ECOMMERCE);
+        ScrapedData result = geoScrapingService.extractDataForAi(url, DomainStatus.ECOMMERCE);
 
         String jsonLdString = result.jsonLd();
 
         // 2. 전체 요청 body 생성
         ObjectNode payload = objectMapper.createObjectNode();
         payload.put("url", url);
-        payload.put("category",CategoryStatus.ECOMMERCE.toString());
-        payload.put("html_text", result.htmlText().substring(0,4000));
+        payload.put("domain",DomainStatus.ECOMMERCE.toString());
+        payload.put("html_text", result.htmlText().substring(0,3500));
 
         // 중요: set()이 아니라 put()을 써야 함. 왜냐하면, put()이 json_ld를 문자열로 넣기 때문이다.
         payload.put("json_ld", jsonLdString);
@@ -123,7 +123,7 @@ public class GeoScrapingServiceTest {
         try {
             String url = "http://localhost:" + server.getAddress().getPort() + "/dynamic";
 
-            ScrapedData result = geoScrapingService.extractDataForAi(url, CategoryStatus.ECOMMERCE);
+            ScrapedData result = geoScrapingService.extractDataForAi(url, DomainStatus.ECOMMERCE);
 
             assertNotNull(result);
             assertThat(result.htmlText()).contains("THIS_TEXT_IS_RENDERED_BY_BROWSER_RUNTIME");

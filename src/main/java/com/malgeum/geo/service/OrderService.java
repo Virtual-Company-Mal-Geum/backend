@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.malgeum.geo.domain.domain.Client;
 import com.malgeum.geo.domain.domain.Order;
-import com.malgeum.geo.domain.domain.Order.CategoryStatus;
+import com.malgeum.geo.domain.domain.Order.DomainStatus;
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.global.common.ClientRepository;
 import com.malgeum.geo.global.common.OrderRepository;
@@ -24,11 +24,11 @@ public class OrderService {
 
     @SuppressWarnings("null")
     @Transactional
-    public Long acceptOrder(String targetUrl, CategoryStatus categoryStatus) {
+    public Long acceptOrder(String targetUrl, DomainStatus domainStatus) {
         return acceptOrder(new GeoOrderRequest(
                 targetUrl,
                 null,
-                categoryStatus == null ? null : categoryStatus.toString(),
+                domainStatus == null ? null : domainStatus.toString(),
                 null,
                 null,
                 null,
@@ -43,6 +43,8 @@ public class OrderService {
     public Long acceptOrder(GeoOrderRequest orderRequest) {
         String clientIdStr = SecurityContextHolder.getContext().getAuthentication().getName();
         Long clientId = Long.valueOf(clientIdStr);
+
+        log.info("[OrderService] 현재 로그인중인 클라이언트 확인 완료 - ClientID: {}",clientId);
 
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 고객입니다."));
@@ -66,7 +68,7 @@ public class OrderService {
                 .contactEmail(orderRequest.contactEmail())
                 .contactOrg(orderRequest.contactOrg())
                 .memo(orderRequest.memo())
-                .categoryStatus(orderRequest.resolvedCategoryStatus())
+                .domainStatus(orderRequest.resolvedDomainStatus())
                 .build();
     }
 }

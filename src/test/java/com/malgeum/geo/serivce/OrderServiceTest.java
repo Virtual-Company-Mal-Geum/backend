@@ -12,7 +12,7 @@ import org.springframework.context.annotation.Import;
 
 import com.malgeum.geo.domain.domain.Client;
 import com.malgeum.geo.domain.domain.Order;
-import com.malgeum.geo.domain.domain.Order.CategoryStatus;
+import com.malgeum.geo.domain.domain.Order.DomainStatus;
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.global.common.ClientRepository;
 import com.malgeum.geo.global.common.OrderRepository;
@@ -46,7 +46,7 @@ public class OrderServiceTest {
         // then
         assertThat(newOrder.getId()).isNotNull();
         assertThat(newOrder.getTargetUrl()).isEqualTo("https://biztoss.co.kr/");
-        assertThat(newOrder.getCategoryStatus()).isEqualTo(CategoryStatus.ECOMMERCE);
+        assertThat(newOrder.getDomainStatus()).isEqualTo(DomainStatus.ECOMMERCE);
         assertThat(newOrder.getResourceKey()).isEqualTo(Client.ClientStatus.ACTIVE);
     }
 
@@ -54,7 +54,7 @@ public class OrderServiceTest {
     @DisplayName("현재 로그인한 Client의 Order이 제대로 입력되어 저장되는지 확인한다.")
     void accpetOrder() {
         String targetUrl = "https://biztoss.co.kr/";
-        Long orderId = orderService.acceptOrder(targetUrl, CategoryStatus.EDUCATION);
+        Long orderId = orderService.acceptOrder(targetUrl, DomainStatus.EDUCATION);
         Optional<Order> savedOrder = orderRepository.findById(orderId);
         
         assertThat(savedOrder.isPresent());

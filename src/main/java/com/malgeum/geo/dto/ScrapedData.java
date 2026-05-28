@@ -1,16 +1,23 @@
 package com.malgeum.geo.dto;
 
+import java.util.List;
+import java.util.Map;
+
+import com.fasterxml.jackson.databind.JsonNode;
+
 public record ScrapedData(
         String url,
-        String category,
+        String domain,
         String htmlText,
-        String jsonLd) {
+        JsonNode jsonLd,
+        Map<String, String> metaTags) {
     public ScrapedData normalized() {
         return new ScrapedData(
                 url,
-                category,
-                trimToMax(htmlText, 8190),
-                jsonLd == null ? "" : jsonLd);
+                domain,
+                trimToMax(htmlText, 3500),
+                jsonLd,
+                metaTags == null ? Map.of("","") : metaTags);
     }
 
     private static String trimToMax(String text, int maxLength) {

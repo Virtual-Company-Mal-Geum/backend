@@ -2,7 +2,7 @@ package com.malgeum.geo.dto;
 
 import java.util.List;
 
-import com.malgeum.geo.domain.domain.Order.CategoryStatus;
+import com.malgeum.geo.domain.domain.Order.DomainStatus;
 
 public record GeoOrderRequest(
         String targetUrl,
@@ -30,26 +30,26 @@ public record GeoOrderRequest(
             );
     }
 
-    public CategoryStatus resolvedCategoryStatus() {
+    public DomainStatus resolvedDomainStatus() {
         if (serviceType == null || serviceType.isBlank()) {
-            return CategoryStatus.ETC;
+            return DomainStatus.ETC;
         }
 
         String normalized = serviceType.trim().toLowerCase();
         if (normalized.contains("쇼핑몰") || normalized.contains("이커머스") || normalized.contains("ecommerce")) {
-            return CategoryStatus.ECOMMERCE;
+            return DomainStatus.ECOMMERCE;
         }
         if (normalized.contains("뉴스") || normalized.contains("미디어") || normalized.contains("news")) {
-            return CategoryStatus.NEWS;
+            return DomainStatus.NEWS;
         }
         if (normalized.contains("교육") || normalized.contains("학술") || normalized.contains("education")) {
-            return CategoryStatus.EDUCATION;
+            return DomainStatus.EDUCATION;
         }
         if (normalized.contains("SaaS") || normalized.contains("테크") || normalized.contains("기술")
                 || normalized.contains("tech")) {
-            return CategoryStatus.TECHBLOG;
+            return DomainStatus.TECHBLOG;
         }
-        return CategoryStatus.ETC;
+        return DomainStatus.ETC;
     }
 
     public List<String> normalizedAnalysisItems() {
