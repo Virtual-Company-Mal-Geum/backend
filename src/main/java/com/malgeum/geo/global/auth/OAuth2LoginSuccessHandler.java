@@ -14,7 +14,9 @@ import com.malgeum.geo.global.common.ClientRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
@@ -26,8 +28,7 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     public void onAuthenticationSuccess(
             HttpServletRequest request,
             HttpServletResponse response,
-            Authentication authentication
-    ) throws IOException {
+            Authentication authentication) throws IOException {
 
         OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 
@@ -36,9 +37,12 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
         Client client = clientRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalStateException("OAuth 로그인 사용자를 찾을 수 없습니다."));
 
-        String accessToken = jwtTokenProvider.generateToken(client.getEmail(), List.of("ROLE_USER"));
+        String accessToken = jwtTokenProvider.generateToken(client.getId().toString(), List.of("ROLE_USER"));
 
-        String redirectUrl = "http://localhost:5173/geo-index.html?accessToken=" + accessToken;
+        String redirectUrl = "http://127.0.0.1:5500/geo-personal.html?accessToken=" + accessToken;
+        
+        log.info("[OAuth2 Success] email={}, clientId={}, redirectUrl={}",
+        email, client.getId(), redirectUrl);
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }

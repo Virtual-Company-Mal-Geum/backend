@@ -8,7 +8,6 @@ import org.springframework.web.client.RestClientResponseException;
 
 import com.malgeum.geo.dto.GeoEvaluationRequest;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
-import com.malgeum.geo.dto.ScrapedData;
 
 import lombok.extern.slf4j.Slf4j;
 
