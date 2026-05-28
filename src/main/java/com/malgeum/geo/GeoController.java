@@ -17,6 +17,7 @@ import java.util.List;
 import com.malgeum.geo.domain.domain.Order.CategoryStatus;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
 import com.malgeum.geo.dto.GeoOrderRequest;
+import com.malgeum.geo.dto.GeoOrderResponse;
 import com.malgeum.geo.domain.domain.ReportResult;
 import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.ClientService;
@@ -39,9 +40,9 @@ public class GeoController {
     }
 
     @PostMapping("/order")
-    public ResponseEntity<String> startAnalysis(@RequestBody GeoOrderRequest orderRequest) {
+    public ResponseEntity<GeoOrderResponse> startAnalysis(@RequestBody GeoOrderRequest orderRequest) {
         Long orderId = orderService.acceptOrder(orderRequest);
-        return ResponseEntity.ok("geo-result");
+        return ResponseEntity.ok(new GeoOrderResponse("GEO 분석 요청이 접수되었습니다.", orderId));
     }
 
     @GetMapping("/report/{orderId}")
