@@ -7,6 +7,7 @@ import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.malgeum.geo.domain.domain.AnalysisReport;
 import com.malgeum.geo.domain.domain.Order;
@@ -44,42 +45,46 @@ public class GeoAsyncWorker {
             order = orderRepository.findById(orderId).orElseThrow();
             order.updateStatus(Order.JobStatus.PROCESSING);
 
-            ScrapedData scrapedData = geoScrapingService.extractDataForAi(order.getTargetUrl(), order.getDomainStatus());
+            ScrapedData scrapedData = geoScrapingService.extractDataForAi(order.getTargetUrl(),
+                    order.getDomainStatus());
             GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
             GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
 
             if ("success".equals(aiResponse.status())) {
+                String content = aiResponse.content() != null ? aiResponse.content() : "";
+
+                // AI 응답 JSON에서 suggested_json_ld 추출
+                Map<String, Object> aiLogMap = new HashMap<>();
+                aiLogMap.put("content", content);
+                try {
+                    ObjectMapper mapper = new ObjectMapper();
+                    JsonNode aiJson = mapper.readTree(content);
+                    JsonNode suggestedJsonLd = aiJson.get("suggested_json_ld");
+                    if (suggestedJsonLd != null && !suggestedJsonLd.isNull()) {
+                        aiLogMap.put("suggested_json_ld", mapper.convertValue(suggestedJsonLd, Object.class));
+                        log.info("[AsyncWorker] suggested_json_ld 추출 성공 - OrderID: {}", orderId);
+                    }
+                } catch (Exception parseEx) {
+                    log.warn("[AsyncWorker] suggested_json_ld 파싱 실패 (무시) - OrderID: {}, 원인: {}",
+                            orderId, parseEx.getMessage());
+                }
+
                 AnalysisReport report = AnalysisReport.builder()
                         .clientOrder(order)
-                        .rawScrapedData(buildRawScrapedData(order, scrapedData))
-                        .rawAILog(parseJsonMap(aiResponse.result()))
+                        .rawScrapedData(Map.of("htmlText", scrapedData.htmlText()))
+                        .rawAILog(aiLogMap)
                         .build();
                 analysisReportRepository.save(report);
                 order.updateStatus(Order.JobStatus.SUCCESS);
                 log.info("[AsyncWorker] 분석 완료 및 저장 성공 - OrderID: {}", orderId);
             } else {
                 order.updateStatus(Order.JobStatus.FAILED);
-                log.info("[AsyncWorker] AI 서버 분석 실패 - OrderID: {}, 사유: {}", orderId, aiResponse.result());
+                log.info("[AsyncWorker] AI 서버 분석 실패 - OrderID: {}, 사유: {}", orderId, aiResponse.content());
             }
         } catch (Exception e) {
             log.error("[AsyncWorker] 작업 중 치명적 오류 발생 - OrderID: {}", orderId, e);
-            if (order != null) {
-                order.updateStatus(Order.JobStatus.FAILED);
-            }
+            order.updateStatus(Order.JobStatus.FAILED);
         }
-    }
-
-    private Map<String, Object> buildRawScrapedData(Order order, ScrapedData scrapedData) {
-        Map<String, Object> rawData = new HashMap<>();
-        rawData.put("targetUrl", scrapedData.url());
-        rawData.put("scrapedHtmlText", scrapedData.htmlText());
-        rawData.put("scrapedJsonLd", scrapedData.jsonLd());
-        rawData.put("siteName", order.getSiteName());
-        rawData.put("serviceType", order.getServiceType());
-        rawData.put("targetEngine", order.getTargetEngine());
-        rawData.put("analysisItems", order.getAnalysisItemList());
-        rawData.put("memo", order.getMemo());
-        return rawData;
     }
 
     private Map<String, Object> parseJsonMap(String jsonString) throws Exception {
