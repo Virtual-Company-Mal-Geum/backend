@@ -87,9 +87,9 @@ public class GeoAsyncWorker {
         }
     }
 
-    private Map<String, Object> parseJsonMap(String jsonString) throws Exception {
-        ObjectMapper objectMapper = new ObjectMapper();
-        return objectMapper.readValue(jsonString, new TypeReference<Map<String, Object>>() {
-        });
-    }
+    // private Map<String, Object> parseJsonMap(String jsonString) throws Exception {
+    //     ObjectMapper objectMapper = new ObjectMapper();
+    //     return objectMapper.readValue(jsonString, new TypeReference<Map<String, Object>>() {
+    //     });
+    // }
 }

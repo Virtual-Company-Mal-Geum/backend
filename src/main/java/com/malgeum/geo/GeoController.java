@@ -40,7 +40,7 @@ public class GeoController {
     }
 
     @GetMapping("/report/{orderId}")
-    public ResponseEntity<ReportResult> getReport(@PathVariable Long orderId) {
+    public ResponseEntity<ReportResult> getReport(@PathVariable("orderId") Long orderId) {
         ReportResult report = reportService.getReportDetails(orderId);
         return ResponseEntity.ok(report);
     }
