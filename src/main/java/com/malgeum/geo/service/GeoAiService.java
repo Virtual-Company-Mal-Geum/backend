@@ -18,8 +18,10 @@ public class GeoAiService {
     private final RestClient restClient;
 
     public GeoAiService(RestClient.Builder restClientBuilder) {
+        //http://localhost:8888/
+        //https://desktop-75bjpd-lab4090.tail6dd0ea.ts.net:8443/
         this.restClient = restClientBuilder
-                .baseUrl("https://desktop-75bjpd-lab4090.tail6dd0ea.ts.net:8443/")
+                .baseUrl("https://desktop-75bjpd-lab4090.tail6dd0ea.ts.net:8443/") 
                 .build();
     }
 
@@ -35,10 +37,10 @@ public class GeoAiService {
 
         } catch (ResourceAccessException e) {
             log.error("[GeoAiService] AI 서버 응답 지연 또는 다운: {}", e.getMessage());
-            return new GeoEvaluationResponse("error", "AI 서버 응답 지연(Timeout).");
+            return new GeoEvaluationResponse("error","text","AI 서버 응답 지연(Timeout).");
         } catch (RestClientResponseException e) {
             log.error("[GeoAiService] AI 연산 중 오류 발생 (Status: {}): {}", e.getStatusCode(), e.getMessage());
-            return new GeoEvaluationResponse("error", "AI 연산 중 오류 발생: " + e.getStatusCode());
+            return new GeoEvaluationResponse("error","text", "AI 연산 중 오류 발생: " + e.getStatusCode());
         }
     }
 }

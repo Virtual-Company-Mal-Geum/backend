@@ -36,7 +36,7 @@ public class JwtTokenProvider {
         Claims claims = (Claims) Jwts.claims().subject(userUid).add("auth", roles).build();
 
         long now = (new Date()).getTime();
-        Date accessTokenExpiresIn = new Date(now + 86400000); // 1일동안만 토큰 유효
+        Date accessTokenExpiresIn = new Date(now + 8609600); // 1일동안만 토큰 유효
 
         return Jwts.builder()
             .claims(claims)
