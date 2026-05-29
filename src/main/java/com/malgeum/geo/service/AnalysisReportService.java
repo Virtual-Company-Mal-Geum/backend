@@ -5,7 +5,7 @@ import org.springframework.stereotype.Service;
 
 import com.malgeum.geo.domain.domain.AnalysisReport;
 import com.malgeum.geo.domain.domain.Order;
-import com.malgeum.geo.domain.domain.ReportResult;
+import com.malgeum.geo.dto.ReportResult;
 import com.malgeum.geo.global.common.AnalysisReportRepository;
 import com.malgeum.geo.global.common.OrderRepository;
 
@@ -16,7 +16,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class ReportService {
+public class AnalysisReportService {
     private final OrderRepository orderRepository;
     private final AnalysisReportRepository analysisReportRepository;
 

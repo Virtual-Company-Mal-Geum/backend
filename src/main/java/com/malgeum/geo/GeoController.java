@@ -16,11 +16,11 @@ import java.util.List;
 
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.dto.GeoOrderResponse;
+import com.malgeum.geo.dto.ReportResult;
 import com.malgeum.geo.domain.domain.Order;
-import com.malgeum.geo.domain.domain.ReportResult;
 import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.OrderService;
-import com.malgeum.geo.service.ReportService;
+import com.malgeum.geo.service.AnalysisReportService;
 import com.malgeum.geo.service.OrderService.OrderSummaryResponse;
 
 import lombok.RequiredArgsConstructor;
@@ -30,7 +30,7 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor
 public class GeoController {
     private final OrderService orderService;
-    private final ReportService reportService;
+    private final AnalysisReportService reportService;
     private final AuthService authService;
     
     @GetMapping("/orders")
