@@ -1,16 +1,21 @@
 package com.malgeum.geo.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.malgeum.geo.domain.domain.Client;
 import com.malgeum.geo.domain.domain.Order;
 import com.malgeum.geo.domain.domain.Order.DomainStatus;
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.global.common.ClientRepository;
+import com.malgeum.geo.global.common.DataNotFoundException;
 import com.malgeum.geo.global.common.OrderRepository;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -44,7 +49,7 @@ public class OrderService {
         String clientIdStr = SecurityContextHolder.getContext().getAuthentication().getName();
         Long clientId = Long.valueOf(clientIdStr);
 
-        log.info("[OrderService] 현재 로그인중인 클라이언트 확인 완료 - ClientID: {}",clientId);
+        log.info("[OrderService] 현재 로그인중인 클라이언트 확인 완료 - ClientID: {}", clientId);
 
         Client client = clientRepository.findById(clientId)
                 .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 고객입니다."));
@@ -53,6 +58,14 @@ public class OrderService {
 
         geoAsyncWorker.processAnalysis(savedOrder.getId());
         return savedOrder.getId();
+    }
+
+    @Transactional(readOnly = true)
+    public List<OrderSummaryResponse> getOrders(Long clientId) {
+        return orderRepository.findAllByClient_IdOrderByCreatedAtDesc(clientId)
+                .stream()
+                .map(OrderSummaryResponse::from)
+                .toList();
     }
 
     public Order createOrder(Client client, GeoOrderRequest orderRequest) {
@@ -70,5 +83,23 @@ public class OrderService {
                 .memo(orderRequest.memo())
                 .domainStatus(orderRequest.resolvedDomainStatus())
                 .build();
+    }
+
+    public record OrderSummaryResponse(
+            Long orderId,
+            String siteName,
+            String targetUrl,
+            String domainStatus,
+            String jobStatus,
+            LocalDateTime createdAt) {
+        public static OrderSummaryResponse from(Order order) {
+            return new OrderSummaryResponse(
+                    order.getId(),
+                    order.getSiteName(),
+                    order.getTargetUrl(),
+                    order.getDomainStatus().name(),
+                    order.getJobStatus().name(),
+                    order.getCreatedAt());
+        }
     }
 }

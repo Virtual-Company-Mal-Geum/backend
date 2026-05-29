@@ -1,6 +1,9 @@
 package com.malgeum.geo;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -13,10 +16,12 @@ import java.util.List;
 
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.dto.GeoOrderResponse;
+import com.malgeum.geo.domain.domain.Order;
 import com.malgeum.geo.domain.domain.ReportResult;
 import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.OrderService;
 import com.malgeum.geo.service.ReportService;
+import com.malgeum.geo.service.OrderService.OrderSummaryResponse;
 
 import lombok.RequiredArgsConstructor;
 
@@ -27,10 +32,11 @@ public class GeoController {
     private final OrderService orderService;
     private final ReportService reportService;
     private final AuthService authService;
-
+    
     @GetMapping("/orders")
-    public ResponseEntity<List<Object>> getOrders() {
-        return ResponseEntity.ok(List.of());
+    public ResponseEntity<List<OrderSummaryResponse>> getOrders(@AuthenticationPrincipal UserDetails userDetails) {
+        Long clientId = Long.valueOf(userDetails.getUsername());
+        return ResponseEntity.ok(orderService.getOrders(clientId));
     }
 
     @PostMapping("/order")
