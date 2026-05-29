@@ -1,9 +1,8 @@
 package com.malgeum.geo.dto;
-
-import java.util.List;
 import java.util.Map;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.JsonNode;
 
 //Request (Spring -> AI Server)
 public record GeoEvaluationRequest(
@@ -13,7 +12,7 @@ public record GeoEvaluationRequest(
 
         @JsonProperty("html_text") String htmlText,
 
-        @JsonProperty("json_ld") String jsonLd,
+        @JsonProperty("json_ld") JsonNode jsonLd,
 
         @JsonProperty("meta_tags") Map<String,String> metaTags
     ) {

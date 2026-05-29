@@ -5,6 +5,8 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.malgeum.geo.domain.domain.Order.DomainStatus;
 import com.malgeum.geo.dto.ScrapedData;
 import com.microsoft.playwright.Browser;
@@ -12,6 +14,7 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.WaitUntilState;
+
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -79,9 +82,16 @@ public class GeoScrapingService {
 
     private ScrapedData buildScrapedData(String url, DomainStatus domainStatus, Document doc) {
         Elements scriptTags = doc.select("script[type=application/ld+json]");
-        String combinedJsonLd = scriptTags.stream()
+        String cleanJsonLd = scriptTags.stream()
                 .map(Element::data)
                 .collect(Collectors.joining(", ", "[", "]"));
+        ObjectMapper objectMapper = new ObjectMapper();
+        JsonNode combinedJsonLd = null;
+        try{
+            combinedJsonLd = objectMapper.readTree(cleanJsonLd);  
+        } catch (Exception e){
+            e.printStackTrace();
+        }
 
         doc.select("header, nav, footer, script, style, noscript, iframe, svg").remove();
         Map<String, String> cleanMetaTags = new HashMap<>();

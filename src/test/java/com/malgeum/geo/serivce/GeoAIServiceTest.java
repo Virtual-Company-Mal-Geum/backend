@@ -4,8 +4,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-import java.util.Map;
-
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,14 +50,14 @@ public class GeoAIServiceTest {
                 "http://example.com",
                 "ECOMMERCE",
                 "본문 텍스트",
-                "[]",
-            Map.of());
+                null,
+                null);
         GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
         GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
-        
+
         // then: 결과를 검증합니다.
         assertEquals("success", aiResponse.status());
-        assertEquals("총점 95점! 훌륭합니다.", aiResponse.result());
+        assertEquals("총점 95점! 훌륭합니다.", aiResponse.content());
         mockServer.verify(); // 가짜 서버가 예상대로 호출되었는지 검증
     }
 

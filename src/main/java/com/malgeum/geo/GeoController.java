@@ -1,10 +1,7 @@
 package com.malgeum.geo;
 
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -14,13 +11,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
-import com.malgeum.geo.domain.domain.Order.DomainStatus;
-import com.malgeum.geo.dto.GeoEvaluationResponse;
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.dto.GeoOrderResponse;
 import com.malgeum.geo.domain.domain.ReportResult;
 import com.malgeum.geo.service.AuthService;
-import com.malgeum.geo.service.ClientService;
 import com.malgeum.geo.service.OrderService;
 import com.malgeum.geo.service.ReportService;
 

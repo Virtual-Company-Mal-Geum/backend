@@ -77,7 +77,7 @@ public class Order extends BaseTimeEntity {
 
     @Builder
     public Order(Client client, String targetUrl, String siteName, String serviceType, String targetEngine,
-            String htmlText, String jsonLd, String analysisItems, String contactName, String contactPhone,
+            String analysisItems, String contactName, String contactPhone,
             String contactEmail, String contactOrg, String memo, DomainStatus domainStatus) {
         this.client = client;
         this.targetUrl = targetUrl;

@@ -12,7 +12,6 @@ import org.junit.jupiter.api.Test;
 
 import com.sun.net.httpserver.HttpServer;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.malgeum.geo.domain.domain.Order.DomainStatus;
 import com.malgeum.geo.dto.ScrapedData;
@@ -31,7 +30,7 @@ public class GeoScrapingServiceTest {
         // given: 타겟 URL 설정
         // 정적 페이지 : https://www.apple.com/kr/shop/buy-iphone/iphone-17-pro
         // 동적 페이지 : https://www.instagram.com/p/DYzfA56jQ2f/
-        String url = "https://www.instagram.com/p/DY3t9qdkRNY/?utm_source=ig_web_copy_link&igsh=NTc4MTIwNjQ2YQ==";
+        String url = "https://www.apple.com/kr/shop/buy-iphone/iphone-17-pro";
 
         // when: 스크래핑 서비스 실행
         long startTime = System.currentTimeMillis();
@@ -50,8 +49,7 @@ public class GeoScrapingServiceTest {
         // 3. 만약 해당 사이트에 JSON-LD가 있다면, "{" 로 시작하는 포맷이어야 함
         // (주의: 타겟 URL에 JSON-LD가 없는 사이트라면 이 검증은 빼거나 조건부로 처리해야 합니다)
         if (!result.jsonLd().isEmpty()) {
-            JsonNode jsonLd = new ObjectMapper().readTree(result.jsonLd());
-            assertThat(jsonLd.isArray()).isTrue();
+            assertThat(result.jsonLd().isArray()).isTrue();
         }
     }
 
@@ -64,7 +62,7 @@ public class GeoScrapingServiceTest {
 
         ScrapedData result = geoScrapingService.extractDataForAi(url, DomainStatus.ECOMMERCE);
 
-        String jsonLdString = result.jsonLd();
+        String jsonLdString = result.jsonLd().toString();
 
         // 2. 전체 요청 body 생성
         ObjectNode payload = objectMapper.createObjectNode();
@@ -127,7 +125,7 @@ public class GeoScrapingServiceTest {
 
             assertNotNull(result);
             assertThat(result.htmlText()).contains("THIS_TEXT_IS_RENDERED_BY_BROWSER_RUNTIME");
-            assertThat(result.jsonLd()).contains("\"@type\":\"Organization\"");
+            assertThat(result.jsonLd().toString()).contains("\"@type\":\"Organization\"");
         } finally {
             server.stop(0);
         }
