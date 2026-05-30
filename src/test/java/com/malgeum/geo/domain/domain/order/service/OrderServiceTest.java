@@ -1,4 +1,4 @@
-package com.malgeum.geo.serivce;
+package com.malgeum.geo.domain.domain.order.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -10,13 +10,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.domain.domain.Order;
-import com.malgeum.geo.domain.domain.Order.DomainStatus;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
+import com.malgeum.geo.domain.domain.order.entity.Order;
+import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
+import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
+import com.malgeum.geo.domain.domain.order.service.OrderService;
 import com.malgeum.geo.dto.GeoOrderRequest;
-import com.malgeum.geo.global.common.ClientRepository;
-import com.malgeum.geo.global.common.OrderRepository;
-import com.malgeum.geo.service.OrderService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -61,6 +61,6 @@ public class OrderServiceTest {
         Order newOrder = savedOrder.get();
         assertThat(newOrder.getId()).isNotNull();
         assertThat(newOrder.getClient().getEmail()).isEqualTo("test001@malgeum.com");
-        assertThat(newOrder.getJobStatus()).isEqualTo(Order.JobStatus.FAILED);
+        assertThat(newOrder.getJobStatus()).isEqualTo(Order.AnalysisJobStatus.FAILED);
     }
 }

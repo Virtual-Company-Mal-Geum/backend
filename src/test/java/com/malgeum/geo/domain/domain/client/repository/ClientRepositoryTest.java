@@ -1,12 +1,14 @@
-package com.malgeum.geo.global.common;
+package com.malgeum.geo.domain.domain.client.repository;
 
-import com.malgeum.geo.domain.domain.Client;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.annotation.Rollback;
+
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

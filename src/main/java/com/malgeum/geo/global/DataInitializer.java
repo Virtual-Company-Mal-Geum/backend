@@ -5,8 +5,8 @@ import java.util.Objects;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.global.common.ClientRepository;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

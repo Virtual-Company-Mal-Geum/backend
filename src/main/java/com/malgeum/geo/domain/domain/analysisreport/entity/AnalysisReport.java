@@ -1,4 +1,4 @@
-package com.malgeum.geo.domain.domain;
+package com.malgeum.geo.domain.domain.analysisreport.entity;
 
 import java.util.Map;
 
@@ -6,6 +6,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import com.malgeum.geo.domain.BaseTimeEntity;
+import com.malgeum.geo.domain.domain.order.entity.Order;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;

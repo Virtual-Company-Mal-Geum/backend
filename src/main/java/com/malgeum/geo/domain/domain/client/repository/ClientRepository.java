@@ -1,12 +1,12 @@
-package com.malgeum.geo.global.common;
+package com.malgeum.geo.domain.domain.client.repository;
 
 import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.jpa.repository.JpaRepository;
 
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.domain.domain.Client.OAuthProvider;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.entity.Client.OAuthProvider;
 
 public interface ClientRepository extends JpaRepository<Client, Long> {
     List<Client> findByName(String name);

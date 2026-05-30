@@ -2,7 +2,7 @@ package com.malgeum.geo.dto;
 
 import java.util.List;
 
-import com.malgeum.geo.domain.domain.Order.DomainStatus;
+import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 
 public record GeoOrderRequest(
         String targetUrl,

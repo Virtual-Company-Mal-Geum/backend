@@ -8,8 +8,8 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
 
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.global.common.ClientRepository;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;

@@ -3,7 +3,6 @@ package com.malgeum.geo;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,14 +13,13 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
+import com.malgeum.geo.domain.domain.analysisreport.entity.ReportResult;
+import com.malgeum.geo.domain.domain.analysisreport.service.AnalysisReportService;
+import com.malgeum.geo.domain.domain.order.service.OrderService;
+import com.malgeum.geo.domain.domain.order.service.OrderService.OrderSummaryResponse;
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.dto.GeoOrderResponse;
-import com.malgeum.geo.dto.ReportResult;
-import com.malgeum.geo.domain.domain.Order;
 import com.malgeum.geo.service.AuthService;
-import com.malgeum.geo.service.OrderService;
-import com.malgeum.geo.service.AnalysisReportService;
-import com.malgeum.geo.service.OrderService.OrderSummaryResponse;
 
 import lombok.RequiredArgsConstructor;
 

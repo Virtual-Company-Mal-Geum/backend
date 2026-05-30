@@ -1,4 +1,4 @@
-package com.malgeum.geo.domain.domain;
+package com.malgeum.geo.domain.domain.client.entity;
 
 import com.malgeum.geo.domain.BaseTimeEntity;
 

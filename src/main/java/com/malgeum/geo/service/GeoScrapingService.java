@@ -7,7 +7,7 @@ import java.util.stream.Collectors;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.malgeum.geo.domain.domain.Order.DomainStatus;
+import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.dto.ScrapedData;
 import com.microsoft.playwright.Browser;
 import com.microsoft.playwright.BrowserType;

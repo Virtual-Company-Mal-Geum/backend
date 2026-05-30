@@ -1,4 +1,4 @@
-package com.malgeum.geo.serivce;
+package com.malgeum.geo.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -17,8 +17,8 @@ import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 
 import com.malgeum.geo.SignUpForm;
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.global.common.ClientRepository;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.service.AuthService;
 import org.springframework.boot.test.context.TestConfiguration;
 

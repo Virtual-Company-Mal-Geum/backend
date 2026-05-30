@@ -1,4 +1,4 @@
-package com.malgeum.geo.service;
+package com.malgeum.geo.domain.domain.client.service;
 
 import java.util.Optional;
 
@@ -6,9 +6,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.domain.domain.Client.OAuthProvider;
-import com.malgeum.geo.global.common.ClientRepository;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.entity.Client.OAuthProvider;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.global.common.DataNotFoundException;
 
 import lombok.RequiredArgsConstructor;

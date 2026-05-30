@@ -7,7 +7,7 @@ import org.springframework.scheduling.annotation.EnableAsync;
 
 @SpringBootApplication
 @EnableJpaAuditing
-//@EnableAsync
+@EnableAsync
 public class GeoApplication {
 	public static void main(String[] args) {
 		SpringApplication.run(GeoApplication.class, args);

@@ -1,4 +1,4 @@
-package com.malgeum.geo.service;
+package com.malgeum.geo.domain.domain.order.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -8,13 +8,14 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.domain.domain.Order;
-import com.malgeum.geo.domain.domain.Order.DomainStatus;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
+import com.malgeum.geo.domain.domain.order.entity.Order;
+import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
+import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
 import com.malgeum.geo.dto.GeoOrderRequest;
-import com.malgeum.geo.global.common.ClientRepository;
 import com.malgeum.geo.global.common.DataNotFoundException;
-import com.malgeum.geo.global.common.OrderRepository;
+import com.malgeum.geo.service.GeoAsyncWorker;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

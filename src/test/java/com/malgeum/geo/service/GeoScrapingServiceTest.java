@@ -1,4 +1,4 @@
-package com.malgeum.geo.serivce;
+package com.malgeum.geo.service;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,7 +13,7 @@ import org.junit.jupiter.api.Test;
 import com.sun.net.httpserver.HttpServer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import com.malgeum.geo.domain.domain.Order.DomainStatus;
+import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.dto.ScrapedData;
 import com.malgeum.geo.service.GeoScrapingService;
 

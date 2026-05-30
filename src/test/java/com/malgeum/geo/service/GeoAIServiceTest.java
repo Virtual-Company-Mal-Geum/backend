@@ -1,4 +1,4 @@
-package com.malgeum.geo.serivce;
+package com.malgeum.geo.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;

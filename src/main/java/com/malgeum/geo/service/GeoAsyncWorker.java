@@ -9,13 +9,13 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.malgeum.geo.domain.domain.AnalysisReport;
-import com.malgeum.geo.domain.domain.Order;
+import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport;
+import com.malgeum.geo.domain.domain.analysisreport.repository.AnalysisReportRepository;
+import com.malgeum.geo.domain.domain.order.entity.Order;
+import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
 import com.malgeum.geo.dto.GeoEvaluationRequest;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
 import com.malgeum.geo.dto.ScrapedData;
-import com.malgeum.geo.global.common.AnalysisReportRepository;
-import com.malgeum.geo.global.common.OrderRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -43,7 +43,7 @@ public class GeoAsyncWorker {
         Order order = null;
         try {
             order = orderRepository.findById(orderId).orElseThrow();
-            order.updateStatus(Order.JobStatus.PROCESSING);
+            order.updateStatus(Order.AnalysisJobStatus.PROCESSING);
 
             ScrapedData scrapedData = geoScrapingService.extractDataForAi(order.getTargetUrl(),
                     order.getDomainStatus());
@@ -75,15 +75,15 @@ public class GeoAsyncWorker {
                         .rawAILog(aiLogMap)
                         .build();
                 analysisReportRepository.save(report);
-                order.updateStatus(Order.JobStatus.SUCCESS);
+                order.updateStatus(Order.AnalysisJobStatus.SUCCESS);
                 log.info("[AsyncWorker] 분석 완료 및 저장 성공 - OrderID: {}", orderId);
             } else {
-                order.updateStatus(Order.JobStatus.FAILED);
+                order.updateStatus(Order.AnalysisJobStatus.FAILED);
                 log.info("[AsyncWorker] AI 서버 분석 실패 - OrderID: {}, 사유: {}", orderId, aiResponse.content());
             }
         } catch (Exception e) {
             log.error("[AsyncWorker] 작업 중 치명적 오류 발생 - OrderID: {}", orderId, e);
-            order.updateStatus(Order.JobStatus.FAILED);
+            order.updateStatus(Order.AnalysisJobStatus.FAILED);
         }
     }
 

@@ -1,13 +1,13 @@
-package com.malgeum.geo.service;
+package com.malgeum.geo.domain.domain.analysisreport.service;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
-import com.malgeum.geo.domain.domain.AnalysisReport;
-import com.malgeum.geo.domain.domain.Order;
+import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport;
+import com.malgeum.geo.domain.domain.analysisreport.repository.AnalysisReportRepository;
+import com.malgeum.geo.domain.domain.order.entity.Order;
+import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
 import com.malgeum.geo.dto.ReportResult;
-import com.malgeum.geo.global.common.AnalysisReportRepository;
-import com.malgeum.geo.global.common.OrderRepository;
 
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;

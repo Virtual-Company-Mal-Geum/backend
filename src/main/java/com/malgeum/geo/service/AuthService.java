@@ -7,8 +7,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.BindingResult;
 
 import com.malgeum.geo.SignUpForm;
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.global.common.ClientRepository;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

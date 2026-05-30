@@ -13,9 +13,9 @@ import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.stereotype.Service;
 
-import com.malgeum.geo.domain.domain.Client;
-import com.malgeum.geo.domain.domain.Client.OAuthProvider;
-import com.malgeum.geo.global.common.ClientRepository;
+import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.domain.client.entity.Client.OAuthProvider;
+import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpSession;
