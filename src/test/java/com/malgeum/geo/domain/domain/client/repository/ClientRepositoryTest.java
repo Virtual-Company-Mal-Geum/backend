@@ -8,7 +8,6 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.test.annotation.Rollback;
 
 import com.malgeum.geo.domain.domain.client.entity.Client;
-import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

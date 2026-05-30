@@ -2,21 +2,21 @@ package com.malgeum.geo.service;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport;
-import com.malgeum.geo.domain.domain.analysisreport.repository.AnalysisReportRepository;
-import com.malgeum.geo.domain.domain.order.entity.Order;
-import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
+import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisExecutionService;
+import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService;
+import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService.ClaimedJob;
 import com.malgeum.geo.dto.GeoEvaluationRequest;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
 import com.malgeum.geo.dto.ScrapedData;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -26,64 +26,78 @@ import lombok.extern.slf4j.Slf4j;
 public class GeoAsyncWorker {
     private final GeoScrapingService geoScrapingService;
     private final GeoAiService geoAiService;
-    private final OrderRepository orderRepository;
-    private final AnalysisReportRepository analysisReportRepository;
+    private final AnalysisJobService analysisJobService;
+    private final AnalysisExecutionService analysisExecutionService;
 
     @SuppressWarnings("null")
-    @Async("taskExecutor")
-    @Transactional
-    public void processAnalysis(Long orderId) {
-        log.info("[AsyncWorker] 백그라운드 분석 시작 - OrderID: {}", orderId);
-        if (orderId == null || orderId <= 0) {
-            log.error("[AsyncWorker] 유효하지 않은 OrderID: {}", orderId);
-            return;
+    @Scheduled(fixedDelayString = "${analysis.job.poll-delay-ms:1000}")
+    public void pollAndProcess() {
+        while (processNextJob()) {
+            // 큐에 대기 중인 작업이 있는 동안 1건씩 순차 처리
+        }
+    }
+
+    private boolean processNextJob() {
+        Optional<ClaimedJob> claimedJobOpt = analysisJobService.claimNextJob();
+        if (claimedJobOpt.isEmpty()) {
+            return false;
         }
 
-        Order order = null;
+        ClaimedJob claimedJob = claimedJobOpt.get();
+        Long jobId = claimedJob.jobId();
+        Long orderId = claimedJob.orderId();
+        log.info("[AsyncWorker] 큐 작업 점유 성공 - jobId: {}, orderId: {}", jobId, orderId);
+
         try {
-            order = orderRepository.findById(orderId).orElseThrow();
-            order.updateStatus(Order.AnalysisJobStatus.PROCESSING);
-
-            ScrapedData scrapedData = geoScrapingService.extractDataForAi(order.getTargetUrl(),
-                    order.getDomainStatus());
-            GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
-            GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
-
-            if ("success".equals(aiResponse.status())) {
-                String content = aiResponse.content() != null ? aiResponse.content() : "";
-
-                // AI 응답 JSON에서 suggested_json_ld 추출
-                Map<String, Object> aiLogMap = new HashMap<>();
-                aiLogMap.put("content", content);
-                try {
-                    ObjectMapper mapper = new ObjectMapper();
-                    JsonNode aiJson = mapper.readTree(content);
-                    JsonNode suggestedJsonLd = aiJson.get("suggested_json_ld");
-                    if (suggestedJsonLd != null && !suggestedJsonLd.isNull()) {
-                        aiLogMap.put("suggested_json_ld", mapper.convertValue(suggestedJsonLd, Object.class));
-                        log.info("[AsyncWorker] suggested_json_ld 추출 성공 - OrderID: {}", orderId);
-                    }
-                } catch (Exception parseEx) {
-                    log.warn("[AsyncWorker] suggested_json_ld 파싱 실패 (무시) - OrderID: {}, 원인: {}",
-                            orderId, parseEx.getMessage());
-                }
-
-                AnalysisReport report = AnalysisReport.builder()
-                        .clientOrder(order)
-                        .rawScrapedData(Map.of("htmlText", scrapedData.htmlText()))
-                        .rawAILog(aiLogMap)
-                        .build();
-                analysisReportRepository.save(report);
-                order.updateStatus(Order.AnalysisJobStatus.SUCCESS);
-                log.info("[AsyncWorker] 분석 완료 및 저장 성공 - OrderID: {}", orderId);
-            } else {
-                order.updateStatus(Order.AnalysisJobStatus.FAILED);
-                log.info("[AsyncWorker] AI 서버 분석 실패 - OrderID: {}, 사유: {}", orderId, aiResponse.content());
-            }
+            processClaimedOrder(orderId);
+            analysisJobService.markSucceeded(jobId);
+            log.info("[AsyncWorker] 작업 처리 성공 - jobId: {}, orderId: {}", jobId, orderId);
         } catch (Exception e) {
-            log.error("[AsyncWorker] 작업 중 치명적 오류 발생 - OrderID: {}", orderId, e);
-            order.updateStatus(Order.AnalysisJobStatus.FAILED);
+            analysisJobService.markFailureOrRetry(jobId, e);
+            log.error("[AsyncWorker] 작업 처리 실패 - jobId: {}, orderId: {}", jobId, orderId, e);
         }
+        return true;
+    }
+
+    protected void processClaimedOrder(Long orderId) {
+        AnalysisReportContext context = buildReportContext(orderId);
+
+        analysisExecutionService.saveAnalysisReport(
+                orderId,
+                context.scrapedData().htmlText(),
+                context.aiLogMap());
+    }
+
+    private AnalysisReportContext buildReportContext(Long orderId) {
+        var order = analysisJobService.getOrderForProcessing(orderId);
+        ScrapedData scrapedData = geoScrapingService.extractDataForAi(
+                order.getTargetUrl(),
+                order.getDomainStatus());
+        GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
+        GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
+
+        if (!"success".equals(aiResponse.status())) {
+            throw new IllegalStateException("AI 서버 처리 실패: " + aiResponse.content());
+        }
+
+        String content = aiResponse.content() != null ? aiResponse.content() : "";
+
+        Map<String, Object> aiLogMap = new HashMap<>();
+        aiLogMap.put("content", content);
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode aiJson = mapper.readTree(content);
+            JsonNode suggestedJsonLd = aiJson.get("suggested_json_ld");
+            if (suggestedJsonLd != null && !suggestedJsonLd.isNull()) {
+                aiLogMap.put("suggested_json_ld", mapper.convertValue(suggestedJsonLd, Object.class));
+                log.info("[AsyncWorker] suggested_json_ld 추출 성공 - OrderID: {}", orderId);
+            }
+        } catch (Exception parseEx) {
+            log.warn("[AsyncWorker] suggested_json_ld 파싱 실패 (무시) - OrderID: {}, 원인: {}",
+                    orderId, parseEx.getMessage());
+        }
+
+        return new AnalysisReportContext(scrapedData, aiLogMap);
     }
 
     // private Map<String, Object> parseJsonMap(String jsonString) throws Exception {
@@ -91,4 +105,7 @@ public class GeoAsyncWorker {
     //     return objectMapper.readValue(jsonString, new TypeReference<Map<String, Object>>() {
     //     });
     // }
+
+    private record AnalysisReportContext(ScrapedData scrapedData, Map<String, Object> aiLogMap) {
+    }
 }

@@ -74,7 +74,7 @@ public class Order extends BaseTimeEntity {
 
     @Enumerated(EnumType.STRING)
     @Column(name = "job_status", nullable = false, length = 20)
-    private AnalysisJobStatus jobStatus;
+    private OrderStatus jobStatus;
 
     @Builder
     public Order(Client client, String targetUrl, String siteName, String serviceType, String targetEngine,
@@ -92,11 +92,11 @@ public class Order extends BaseTimeEntity {
         this.contactOrg = contactOrg;
         this.memo = memo;
         this.resourceKey = UUID.randomUUID().toString();
-        this.jobStatus = AnalysisJobStatus.PENDING;
+        this.jobStatus = OrderStatus.PENDING;
         this.domainStatus = domainStatus == null ? DomainStatus.ETC : domainStatus;
     }
 
-    public void updateStatus(AnalysisJobStatus newStatus) {
+    public void updateStatus(OrderStatus newStatus) {
         this.jobStatus = newStatus;
     }
 
@@ -110,15 +110,10 @@ public class Order extends BaseTimeEntity {
                 .toList();
     }
 
-    public enum AnalysisJobStatus {
-        // 대기중, 처리중, 성공, 실패
-        PENDING, PROCESSING, SUCCESS, FAILED
-    }
-
     public enum OrderStatus {
         PENDING, // 대기 중
         RUNNING, // AI 서버 요청 중
-        SUCCEEDED, // 성공
+        SUCCESS, // 성공
         RETRY_WAIT, // 재시도 대기
         FAILED // 최종 실패
     }
@@ -155,5 +150,9 @@ public class Order extends BaseTimeEntity {
                 return "etc";
             }
         }
+    }
+
+    public void markFailed() {
+        this.jobStatus = OrderStatus.FAILED;
     }
 }

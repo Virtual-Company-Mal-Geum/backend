@@ -2,7 +2,6 @@ package com.malgeum.geo.domain.domain.order.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -10,12 +9,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
+import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
 import com.malgeum.geo.dto.GeoOrderRequest;
-import com.malgeum.geo.global.common.DataNotFoundException;
-import com.malgeum.geo.service.GeoAsyncWorker;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -26,7 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 public class OrderService {
     private final OrderRepository orderRepository;
     private final ClientRepository clientRepository;
-    private final GeoAsyncWorker geoAsyncWorker;
+    private final AnalysisJobService analysisJobService;
 
     @SuppressWarnings("null")
     @Transactional
@@ -57,7 +55,7 @@ public class OrderService {
         Order savedOrder = orderRepository.save(createOrder(client, orderRequest));
         log.info("[OrderService] 새로운 분석 주문 접수 완료 - OrderID: {}", savedOrder.getId());
 
-        geoAsyncWorker.processAnalysis(savedOrder.getId());
+        analysisJobService.enqueue(savedOrder);
         return savedOrder.getId();
     }
 

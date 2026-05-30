@@ -15,7 +15,6 @@ import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
-import com.malgeum.geo.domain.domain.order.service.OrderService;
 import com.malgeum.geo.dto.GeoOrderRequest;
 
 import lombok.extern.slf4j.Slf4j;
@@ -61,6 +60,6 @@ public class OrderServiceTest {
         Order newOrder = savedOrder.get();
         assertThat(newOrder.getId()).isNotNull();
         assertThat(newOrder.getClient().getEmail()).isEqualTo("test001@malgeum.com");
-        assertThat(newOrder.getJobStatus()).isEqualTo(Order.AnalysisJobStatus.FAILED);
+        assertThat(newOrder.getJobStatus()).isEqualTo(Order.OrderStatus.FAILED);
     }
 }
