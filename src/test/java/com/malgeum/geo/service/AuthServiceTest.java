@@ -19,7 +19,6 @@ import org.springframework.validation.BindingResult;
 import com.malgeum.geo.SignUpForm;
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
-import com.malgeum.geo.service.AuthService;
 import org.springframework.boot.test.context.TestConfiguration;
 
 @DataJpaTest

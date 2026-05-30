@@ -15,7 +15,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.dto.ScrapedData;
-import com.malgeum.geo.service.GeoScrapingService;
 
 import lombok.extern.slf4j.Slf4j;
 

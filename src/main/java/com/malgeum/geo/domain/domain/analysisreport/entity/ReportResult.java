@@ -1,4 +1,4 @@
-package com.malgeum.geo.dto;
+package com.malgeum.geo.domain.domain.analysisreport.entity;
 
 import java.time.LocalDateTime;
 import java.util.Map;
