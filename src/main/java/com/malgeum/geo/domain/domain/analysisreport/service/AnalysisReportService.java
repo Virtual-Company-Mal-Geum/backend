@@ -4,10 +4,10 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport;
+import com.malgeum.geo.domain.domain.analysisreport.entity.ReportResult;
 import com.malgeum.geo.domain.domain.analysisreport.repository.AnalysisReportRepository;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
-import com.malgeum.geo.dto.ReportResult;
 
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
