@@ -9,7 +9,6 @@ import org.springframework.stereotype.Service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisExecutionService;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService.ClaimedJob;

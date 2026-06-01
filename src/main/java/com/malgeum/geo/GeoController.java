@@ -64,4 +64,10 @@ public class GeoController {
     public ResponseEntity<String> login() {
         return ResponseEntity.ok("geo-login");
     }
+
+    @PostMapping("/login")
+    public ResponseEntity<String> login(@RequestBody LoginRequest request) {
+        String token = authService.login(request);
+        return ResponseEntity.ok(token);
+    }
 }
