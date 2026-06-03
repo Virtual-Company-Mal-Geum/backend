@@ -1,6 +1,7 @@
 package com.malgeum.geo.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -15,10 +16,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
+import org.springframework.web.server.ResponseStatusException;
 
+import com.malgeum.geo.LoginRequest;
 import com.malgeum.geo.SignUpForm;
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
+import com.malgeum.geo.global.auth.JwtTokenProvider;
 import org.springframework.boot.test.context.TestConfiguration;
 
 @DataJpaTest
@@ -63,12 +67,52 @@ public class AuthServiceTest {
         System.out.println(savedClient.get().getPassword());
     }
 
+    @Test
+    @DisplayName("존재하지 않는 이메일로 로그인하면 인증에 실패해야 한다.")
+    void loginWithUnknownEmail_ShouldFail() {
+        LoginRequest request = new LoginRequest();
+        request.setEmail("missing-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com");
+        request.setPassword("password123!");
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("401 UNAUTHORIZED");
+    }
+
+    @Test
+    @DisplayName("비밀번호가 일치하지 않으면 인증에 실패해야 한다.")
+    void loginWithWrongPassword_ShouldFail() {
+        String email = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        SignUpForm form = new SignUpForm();
+        form.setName("테스트 사용자");
+        form.setCompany("malgeum");
+        form.setPhone("01012345678");
+        form.setPassword1("password123!");
+        form.setPassword2("password123!");
+        form.setEmail(email);
+        authService.signup(form, new BeanPropertyBindingResult(form, "signUpForm"));
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword("wrong-password");
+
+        assertThatThrownBy(() -> authService.login(request))
+                .isInstanceOf(ResponseStatusException.class)
+                .hasMessageContaining("401 UNAUTHORIZED");
+    }
+
     @TestConfiguration
     static class TestConfig {
         @SuppressWarnings("deprecation")
         @Bean
         PasswordEncoder passwordEncoder() {
             return NoOpPasswordEncoder.getInstance();
+        }
+
+        @Bean
+        JwtTokenProvider jwtTokenProvider() {
+            return new JwtTokenProvider(
+                    "testtesttesttesttesttesttesttesttesttesttesttesttesttesttesttest");
         }
     }
 }

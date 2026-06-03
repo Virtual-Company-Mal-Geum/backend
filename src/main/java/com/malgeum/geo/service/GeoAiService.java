@@ -1,7 +1,5 @@
 package com.malgeum.geo.service;
 
-import java.time.Duration;
-
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;

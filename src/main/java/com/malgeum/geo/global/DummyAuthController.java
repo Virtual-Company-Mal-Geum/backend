@@ -24,7 +24,6 @@ public class DummyAuthController {
     @PostMapping("/auth/dummy-login")
     public ResponseEntity<String> testLogin() {
         // 1L로 생성된 테스트 고객의 ID를 문자열로 변환하여 JWT 토큰 생성
-        // TODO: 실제로는 고객의 ID와 권한 정보를 DB에서 조회하여 토큰에 반영해야 합니다.
         String token = jwtTokenProvider.generateToken("1", List.of("ROLE_USER"));
         return ResponseEntity.ok(token);
     }
