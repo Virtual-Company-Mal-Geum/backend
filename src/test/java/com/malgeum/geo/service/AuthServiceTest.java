@@ -13,7 +13,7 @@ import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.security.crypto.password.NoOpPasswordEncoder;
+import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.validation.BeanPropertyBindingResult;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.server.ResponseStatusException;
@@ -52,11 +52,12 @@ public class AuthServiceTest {
         BindingResult bindingResult = new BeanPropertyBindingResult(form, "signUpForm");
 
         // when
-        authService.signup(form, bindingResult);
+        String token = authService.signup(form, bindingResult);
 
         // then
         Optional<Client> savedClient = clientRepository.findByEmail(email);
         assertThat(savedClient).isPresent();
+        assertThat(token).isNotBlank();
         assertThat(savedClient.get().getName()).isEqualTo(form.getName());
         assertThat(savedClient.get().getEmail()).isEqualTo(form.getEmail());
         assertThat(savedClient.get().getCompany()).isEqualTo(form.getCompany());
@@ -101,12 +102,58 @@ public class AuthServiceTest {
                 .hasMessageContaining("401 UNAUTHORIZED");
     }
 
+    @Test
+    @DisplayName("회원가입한 이메일과 비밀번호로 로그인하면 JWT 토큰이 발급돼야 한다.")
+    void loginAfterSignup_ShouldReturnToken() {
+        String email = "test-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        SignUpForm form = new SignUpForm();
+        form.setName("테스트 사용자");
+        form.setCompany("malgeum");
+        form.setPhone("01012345678");
+        form.setPassword1("password123!");
+        form.setPassword2("password123!");
+        form.setEmail(email);
+        authService.signup(form, new BeanPropertyBindingResult(form, "signUpForm"));
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword("password123!");
+
+        String token = authService.login(request);
+
+        assertThat(token).isNotBlank();
+    }
+
+    @Test
+    @DisplayName("레거시 평문 비밀번호 계정은 로그인 성공 후 암호화된 비밀번호로 마이그레이션돼야 한다.")
+    void loginWithLegacyPlainPassword_ShouldMigratePassword() {
+        String email = "legacy-" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        Client client = Client.builder()
+                .name("레거시 사용자")
+                .company("malgeum")
+                .phone("01012345678")
+                .email(email)
+                .password("password123!")
+                .build();
+        clientRepository.save(client);
+
+        LoginRequest request = new LoginRequest();
+        request.setEmail(email);
+        request.setPassword("password123!");
+
+        String token = authService.login(request);
+
+        Client migrated = clientRepository.findByEmail(email).orElseThrow();
+        assertThat(token).isNotBlank();
+        assertThat(migrated.getPassword()).isNotEqualTo("password123!");
+        assertThat(migrated.getPassword()).startsWith("{bcrypt}");
+    }
+
     @TestConfiguration
     static class TestConfig {
-        @SuppressWarnings("deprecation")
         @Bean
         PasswordEncoder passwordEncoder() {
-            return NoOpPasswordEncoder.getInstance();
+            return PasswordEncoderFactories.createDelegatingPasswordEncoder();
         }
 
         @Bean

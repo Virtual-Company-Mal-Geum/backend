@@ -10,11 +10,14 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.factory.PasswordEncoderFactories;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.malgeum.geo.global.auth.OAuth2LoginSuccessHandler;
 import com.malgeum.geo.global.filter.JwtAuthenticationFilter;
@@ -22,7 +25,9 @@ import com.malgeum.geo.service.CustomOAuth2UserService;
 
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
+@Slf4j
 @Configuration
 @EnableWebSecurity
 @RequiredArgsConstructor
@@ -30,6 +35,9 @@ public class SecurityConfig {
         private final JwtAuthenticationFilter jwtAuthenticationFilter;
         private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
         // private final SecurityContextRepository securityContextRepository;
+
+        @Value("${app.frontend-base-url}")
+        private String frontendBaseUrl;
 
         @Bean
         public SecurityFilterChain filterChain(HttpSecurity http, CustomOAuth2UserService customOAuth2UserService)
@@ -41,9 +49,7 @@ public class SecurityConfig {
                                 // 쿠키 기반 세션 로그인에서 중요한 보안 기능인 CSRF 비활성화 (JWT를 쓰기 때문에 필요 없음)
                                 .csrf(csrf -> csrf.disable())
                                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                                .formLogin(formLogin -> formLogin
-                                                .loginPage("/api/v1/geo/login")
-                                                .defaultSuccessUrl("/"))
+                                .formLogin(formLogin -> formLogin.disable())
                                 .logout(logout -> logout
                                                 .logoutUrl("/api/v1/geo/logout")
                                                 .logoutSuccessUrl("/api/v1/geo/")
@@ -53,9 +59,18 @@ public class SecurityConfig {
                                                                 .userService(customOAuth2UserService))
                                                 .successHandler(oAuth2LoginSuccessHandler)
                                                 .failureHandler((request, response, exception) -> {
-                                                        response.sendError(HttpServletResponse.SC_UNAUTHORIZED,
-                                                                        "OAuth2 login failed: "
-                                                                                        + exception.getMessage());
+                                                        log.warn("OAuth2 login failed: {}", exception.getMessage(),
+                                                                        exception);
+                                                        String errorCode = exception instanceof OAuth2AuthenticationException oauth2Exception
+                                                                        ? oauth2Exception.getError().getErrorCode()
+                                                                        : "oauth_login_failed";
+                                                        String redirectUrl = UriComponentsBuilder
+                                                                        .fromUriString(frontendBaseUrl)
+                                                                        .path("/index.html")
+                                                                        .queryParam("oauthError", errorCode)
+                                                                        .build()
+                                                                        .toUriString();
+                                                        response.sendRedirect(redirectUrl);
                                                 }))
                                 // 3. URL별 인가 규칙 설정 (로그인은 누구나 가능하지만, 나머지 요청들은 모두 인가(jwt)가 필요함)
                                 .authorizeHttpRequests(auth -> auth
@@ -96,7 +111,7 @@ public class SecurityConfig {
                                 "http://127.0.0.1:3000",
                                 "http://localhost:5173",
                                 "http://127.0.0.1:5173",
-                        "https://https://virtual-company-mal-geum.github.io"));
+                                "https://virtual-company-mal-geum.github.io"));
 
                 // 요청 메시지에서 어떤 HTTP METHOD만 허용할지?
                 config.setAllowedMethods(List.of(

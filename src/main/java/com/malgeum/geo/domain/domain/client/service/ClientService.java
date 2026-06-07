@@ -2,7 +2,6 @@ package com.malgeum.geo.domain.domain.client.service;
 
 import java.util.Optional;
 
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -22,7 +21,7 @@ public class ClientService {
 
     public Client create(String password, String name, String email, String phone, String company) {
         Client client = Client.builder()
-                .password(new BCryptPasswordEncoder().encode(password))
+                .password(passwordEncoder.encode(password))
                 .name(name)
                 .email(email)
                 .phone(phone)

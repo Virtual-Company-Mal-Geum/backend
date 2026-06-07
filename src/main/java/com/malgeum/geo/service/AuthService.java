@@ -26,7 +26,7 @@ public class AuthService {
     private final JwtTokenProvider jwtTokenProvider;
 
     @Transactional
-    public void signup(SignUpForm form, BindingResult bindingResult) {
+    public String signup(SignUpForm form, BindingResult bindingResult) {
         String name = form.getName();
         String email = form.getEmail();
         String phone = form.getPhone();
@@ -51,7 +51,8 @@ public class AuthService {
                 .company(company)
                 .build();
 
-        userRepository.save(client);
+        Client savedClient = userRepository.save(client);
+        return jwtTokenProvider.generateToken(savedClient.getId().toString(), List.of("ROLE_USER"));
     }
 
     @Transactional
@@ -60,10 +61,30 @@ public class AuthService {
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
 
-        if (client.getPassword() == null || !passwordEncoder.matches(request.getPassword(), client.getPassword())) {
+        if (!matchesPassword(request.getPassword(), client)) {
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다.");
         }
 
         return jwtTokenProvider.generateToken(client.getId().toString(), List.of("ROLE_USER"));
     }
+
+    private boolean matchesPassword(String rawPassword, Client client) {
+        String storedPassword = client.getPassword();
+        if (storedPassword == null || storedPassword.isBlank()) {
+            return false;
+        }
+
+        try {
+            return passwordEncoder.matches(rawPassword, storedPassword);
+        } catch (IllegalArgumentException e) {
+            if (!storedPassword.equals(rawPassword)) {
+                return false;
+            }
+
+            client.updatePassword(passwordEncoder.encode(rawPassword));
+            userRepository.save(client);
+            return true;
+        }
+    }
+
 }

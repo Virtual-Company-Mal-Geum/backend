@@ -56,9 +56,11 @@ public class GeoController {
     }
 
     @PostMapping("/signup")
-    public ResponseEntity<?> signup(@RequestBody SignUpForm form, BindingResult bindingResult) {
-        authService.signup(form, bindingResult);
-        return ResponseEntity.ok().build();
+    public ResponseEntity<Map<String, String>> signup(@RequestBody SignUpForm signUpForm, BindingResult bindingResult) {
+        String token = authService.signup(signUpForm, bindingResult);
+        return ResponseEntity.ok(Map.of(
+                "token", token,
+                "accessToken", token));
     }
 
     @GetMapping("/login")
@@ -69,6 +71,8 @@ public class GeoController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, String>> login(@RequestBody LoginRequest request) {
         String token = authService.login(request);
-        return ResponseEntity.ok(Map.of("token", token));
+        return ResponseEntity.ok(Map.of(
+                "token", token,
+                "accessToken", token));
     }
 }

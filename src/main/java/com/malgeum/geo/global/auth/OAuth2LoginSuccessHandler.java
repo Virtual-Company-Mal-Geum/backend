@@ -3,10 +3,12 @@ package com.malgeum.geo.global.auth;
 import java.io.IOException;
 import java.util.List;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.security.web.authentication.SimpleUrlAuthenticationSuccessHandler;
 import org.springframework.stereotype.Component;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
@@ -24,6 +26,9 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
     private final JwtTokenProvider jwtTokenProvider;
     private final ClientRepository clientRepository;
 
+    @Value("${app.frontend-base-url}")
+    private String frontendBaseUrl;
+
     @Override
     public void onAuthenticationSuccess(
             HttpServletRequest request,
@@ -39,10 +44,14 @@ public class OAuth2LoginSuccessHandler extends SimpleUrlAuthenticationSuccessHan
 
         String accessToken = jwtTokenProvider.generateToken(client.getId().toString(), List.of("ROLE_USER"));
 
-        String redirectUrl = "http://127.0.0.1:5500/geo-personal.html?accessToken=" + accessToken;
-        
+        String redirectUrl = UriComponentsBuilder.fromUriString(frontendBaseUrl)
+                .path("/geo-personal.html")
+                .queryParam("accessToken", accessToken)
+                .build()
+                .toUriString();
+
         log.info("[OAuth2 Success] email={}, clientId={}, redirectUrl={}",
-        email, client.getId(), redirectUrl);
+                email, client.getId(), redirectUrl);
 
         getRedirectStrategy().sendRedirect(request, response, redirectUrl);
     }
