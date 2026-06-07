@@ -1,5 +1,6 @@
 package com.malgeum.geo.service;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.ResourceAccessException;
@@ -17,11 +18,10 @@ public class GeoAiService {
 
     private final RestClient restClient;
 
-    public GeoAiService(RestClient.Builder restClientBuilder) {
-        //http://localhost:8888/
-        //https://desktop-75bjpd-lab4090.tail6dd0ea.ts.net:8443/
+    public GeoAiService(RestClient.Builder restClientBuilder,
+        @Value("${ai.server.base-url}") String aiServerBaseUrl) {
         this.restClient = restClientBuilder
-                .baseUrl("https://desktop-75bjpd-lab4090.tail6dd0ea.ts.net:8443/") 
+                .baseUrl(aiServerBaseUrl)
                 .build();
     }
 

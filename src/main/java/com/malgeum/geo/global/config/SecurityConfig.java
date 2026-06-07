@@ -95,7 +95,8 @@ public class SecurityConfig {
                                 "http://localhost:3000",
                                 "http://127.0.0.1:3000",
                                 "http://localhost:5173",
-                                "http://127.0.0.1:5173"));
+                                "http://127.0.0.1:5173",
+                        "https://https://virtual-company-mal-geum.github.io"));
 
                 // 요청 메시지에서 어떤 HTTP METHOD만 허용할지?
                 config.setAllowedMethods(List.of(
