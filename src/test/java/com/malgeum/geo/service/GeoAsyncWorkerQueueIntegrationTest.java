@@ -110,6 +110,6 @@ class GeoAsyncWorkerQueueIntegrationTest {
         assertThat(analysisJobRepository.findAll())
                 .allMatch(job -> job.getStatus() == AnalysisJobStatus.SUCCEEDED);
         assertThat(orderRepository.findAll())
-                .allMatch(order -> order.getJobStatus() == OrderStatus.SUCCESS);
+                .allMatch(order -> order.getOrderStatus() == OrderStatus.COMPLETED);
     }
 }

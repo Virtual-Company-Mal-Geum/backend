@@ -18,4 +18,6 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, Long> 
       FOR UPDATE SKIP LOCKED
       """, nativeQuery = true)
   Optional<AnalysisJob> findNextJobForUpdate();
+
+  Optional<AnalysisJob> findByOrderId(Long orderId);
 }

@@ -14,6 +14,7 @@ import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
 import com.malgeum.geo.dto.GeoOrderRequest;
+import com.malgeum.geo.global.common.DataNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +46,12 @@ public class OrderService {
     @SuppressWarnings("null")
     @Transactional
     public Long acceptOrder(GeoOrderRequest orderRequest) {
+        Order savedOrder = saveOrder(orderRequest);
+        analysisJobService.enqueue(savedOrder);
+        return savedOrder.getId();
+    }
+
+    private Order saveOrder(GeoOrderRequest orderRequest) {
         String clientIdStr = SecurityContextHolder.getContext().getAuthentication().getName();
         Long clientId = Long.valueOf(clientIdStr);
 
@@ -55,8 +62,13 @@ public class OrderService {
         Order savedOrder = orderRepository.save(createOrder(client, orderRequest));
         log.info("[OrderService] 새로운 분석 주문 접수 완료 - OrderID: {}", savedOrder.getId());
 
-        analysisJobService.enqueue(savedOrder);
-        return savedOrder.getId();
+        return savedOrder;
+    }
+    
+    @Transactional(readOnly = true)
+    public Order getOrder(Long orderId) {
+        return orderRepository.findById(orderId)
+                .orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
     }
 
     @Transactional(readOnly = true)
@@ -97,7 +109,7 @@ public class OrderService {
                     order.getSiteName(),
                     order.getTargetUrl(),
                     order.getDomainStatus().name(),
-                    order.getJobStatus().name(),
+                    order.getOrderStatus().name(),
                     order.getCreatedAt());
         }
     }

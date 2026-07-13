@@ -37,7 +37,7 @@ public class AnalysisReportService {
 
         return new ReportResult(order.getId(),
                 order.getTargetUrl(),
-                order.getJobStatus().name(),
+                order.getOrderStatus().name(),
                 report.getRawAILog(), // AI출력물 JSON 파일
                 report.getCreatedAt());
     }

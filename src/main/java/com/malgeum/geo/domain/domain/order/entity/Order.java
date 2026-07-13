@@ -73,8 +73,8 @@ public class Order extends BaseTimeEntity {
     private String resourceKey;
 
     @Enumerated(EnumType.STRING)
-    @Column(name = "job_status", nullable = false, length = 20)
-    private OrderStatus jobStatus;
+    @Column(name = "order_status", nullable = false, length = 20)
+    private OrderStatus orderStatus;
 
     @Builder
     public Order(Client client, String targetUrl, String siteName, String serviceType, String targetEngine,
@@ -92,12 +92,12 @@ public class Order extends BaseTimeEntity {
         this.contactOrg = contactOrg;
         this.memo = memo;
         this.resourceKey = UUID.randomUUID().toString();
-        this.jobStatus = OrderStatus.PENDING;
+        this.orderStatus = OrderStatus.ACCEPTED;
         this.domainStatus = domainStatus == null ? DomainStatus.ETC : domainStatus;
     }
 
     public void updateStatus(OrderStatus newStatus) {
-        this.jobStatus = newStatus;
+        this.orderStatus = newStatus;
     }
 
     public List<String> getAnalysisItemList() {
@@ -111,11 +111,22 @@ public class Order extends BaseTimeEntity {
     }
 
     public enum OrderStatus {
-        PENDING, // 대기 중
-        RUNNING, // AI 서버 요청 중
-        SUCCESS, // 성공
-        RETRY_WAIT, // 재시도 대기
-        FAILED // 최종 실패
+        ACCEPTED, // 주문 접수 및 작업 등록 완료
+        PROCESSING, // 크롤링·AI 분석·재시도 등을 포함해 처리 중
+        COMPLETED, // 분석 리포트 생성 완료
+        FAILED // 더 이상 처리할 수 없는 최종 실패
+    }
+
+    public void markProcessing() {
+        this.orderStatus = OrderStatus.PROCESSING;
+    }
+
+    public void markCompleted() {
+        this.orderStatus = OrderStatus.COMPLETED;
+    }
+
+    public void markFailed() {
+        this.orderStatus = OrderStatus.FAILED;
     }
 
     public enum DomainStatus {
@@ -150,9 +161,5 @@ public class Order extends BaseTimeEntity {
                 return "etc";
             }
         }
-    }
-
-    public void markFailed() {
-        this.jobStatus = OrderStatus.FAILED;
     }
 }
