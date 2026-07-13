@@ -14,7 +14,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToOne;
 import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -28,8 +28,8 @@ public class AnalysisJob extends BaseTimeEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "order_id", nullable = false)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;
 
     @Enumerated(EnumType.STRING)
@@ -41,6 +41,10 @@ public class AnalysisJob extends BaseTimeEntity {
 
     @Column(name = "max_attempts", nullable = false)
     int maxAttempts;
+
+    @Enumerated(EnumType.STRING)
+    @Column(columnDefinition = "TEXT")
+    private FailureStage lastFailureStage;
 
     @Column(columnDefinition = "TEXT")
     private String errorMessage;
@@ -82,6 +86,7 @@ public class AnalysisJob extends BaseTimeEntity {
     public void markFailed(String errorMessage) {
         this.status = AnalysisJobStatus.FAILED;
         this.errorMessage = errorMessage;
+        //TODO: this.lastFailureStage = checkFailureStage(errorMessage);
         this.lockedAt = null;
     }
 
@@ -89,4 +94,17 @@ public class AnalysisJob extends BaseTimeEntity {
         return this.attempts < this.maxAttempts;
     }
 
+    // 실패 지점 표시
+    public enum FailureStage {
+        ORDER_LOADING,
+        SCRAPING,
+        AI_REQUEST,
+        AI_RESPONSE_PARSING,
+        REPORT_SAVING
+    }
+
+    private FailureStage checkFailureStage(String errorMessage){
+        //TODO: errorMsg를 읽고 어떤 실패지점인지 분기 만들기
+        return FailureStage.REPORT_SAVING;
+    }
 }
