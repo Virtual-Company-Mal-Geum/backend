@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.malgeum.geo.domain.domain.analysisjob.entity.AnalysisJob;
-import com.malgeum.geo.domain.domain.analysisjob.repository.AnalysisJobRepository;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisExecutionService;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService.ClaimedJob;
@@ -19,7 +18,6 @@ import com.malgeum.geo.domain.domain.order.service.OrderService;
 import com.malgeum.geo.dto.GeoEvaluationRequest;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
 import com.malgeum.geo.dto.ScrapedData;
-import com.malgeum.geo.global.common.DataNotFoundException;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -33,7 +31,6 @@ public class GeoAsyncWorker {
     private final AnalysisJobService analysisJobService;
     private final AnalysisExecutionService analysisExecutionService;
     private final OrderService orderService;
-    private final AnalysisJobRepository analysisJobRepository;
 
     // TODO: 재분석 프로세스를 3번 다 해보고나서야 다음꺼로 넘어갈까? || A프로세스 분석 -> B -> C -> A 식으로 순차적이게
     // 할까?
@@ -54,8 +51,7 @@ public class GeoAsyncWorker {
         ClaimedJob claimedJob = claimedJobOpt.get();
         Long jobId = claimedJob.jobId();
         Long orderId = claimedJob.orderId();
-        AnalysisJob job = analysisJobRepository.findById(jobId)
-                .orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
+        AnalysisJob job = analysisJobService.getAnalysisJob(jobId);
         log.info("[AsyncWorker] 큐 작업 점유 성공 - jobId: {}, orderId: {}, {}번째 시도", jobId, orderId, job.getAttempts());
 
         try {
@@ -70,15 +66,15 @@ public class GeoAsyncWorker {
     }
 
     public void processSynchronously(Long orderId) {
-        log.info("[SyncWorker] 동기 분석 시작 - orderId: {}", orderId);
+        log.info("[AsyncWorker] 동기 분석 시작 - orderId: {}", orderId);
         analysisJobService.markProcessing(orderId);
         try {
             processClaimedOrder(orderId);
             analysisJobService.markSucceeded(orderId);
-            log.info("[SyncWorker] 동기 분석 성공 - orderId: {}", orderId);
+            log.info("[AsyncWorker] 동기 분석 성공 - orderId: {}", orderId);
         } catch (Exception e) {
             analysisJobService.markFailureOrRetry(orderId, e);
-            log.error("[SyncWorker] 동기 분석 실패 - orderId: {}", orderId, e);
+            log.error("[AsyncWorker] 동기 분석 실패 - orderId: {}", orderId, e);
             throw e;
         }
     }
