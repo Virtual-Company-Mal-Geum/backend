@@ -42,3 +42,5 @@ application.yaml
 
 *.xml
 *.log
+*.yaml
+*.yml
