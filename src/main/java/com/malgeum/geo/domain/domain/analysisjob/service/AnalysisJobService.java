@@ -37,15 +37,22 @@ public class AnalysisJobService {
         return Optional.of(new ClaimedJob(job.getId(), job.getOrder().getId()));
     }
 
+    public AnalysisJob getAnalysisJob(Long jobId) {
+        return analysisJobRepository.findById(jobId)
+                .orElseThrow(() -> new DataNotFoundException("AnalysisJob not found. id=" + jobId));
+    }
+
     @Transactional
     public void markProcessing(Long orderId) {
-        AnalysisJob job = analysisJobRepository.findByOrderId(orderId).orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
+        AnalysisJob job = analysisJobRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
         job.getOrder().markProcessing();
     }
 
     @Transactional
     public void markSucceeded(Long orderId) {
-        AnalysisJob job = analysisJobRepository.findByOrderId(orderId).orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
+        AnalysisJob job = analysisJobRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
         job.markSucceeded();
         job.getOrder().markCompleted();
     }
