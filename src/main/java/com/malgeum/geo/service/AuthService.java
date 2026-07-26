@@ -12,7 +12,9 @@ import com.malgeum.geo.LoginRequest;
 import com.malgeum.geo.SignUpForm;
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
+import com.malgeum.geo.dto.PasswordUpdateRequest;
 import com.malgeum.geo.global.auth.JwtTokenProvider;
+import com.malgeum.geo.global.common.DataNotFoundException;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -20,8 +22,7 @@ import lombok.RequiredArgsConstructor;
 @Service
 @RequiredArgsConstructor
 public class AuthService {
-
-    private final ClientRepository userRepository;
+    private final ClientRepository clientRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
 
@@ -34,7 +35,7 @@ public class AuthService {
         String password1 = form.getPassword1();
         String password2 = form.getPassword2();
 
-        if (userRepository.findByEmail(email).isPresent()) {
+        if (clientRepository.findByEmail(email).isPresent()) {
             throw new IllegalArgumentException("이미 사용 중인 이메일입니다.");
         }
 
@@ -51,13 +52,13 @@ public class AuthService {
                 .company(company)
                 .build();
 
-        Client savedClient = userRepository.save(client);
+        Client savedClient = clientRepository.save(client);
         return jwtTokenProvider.generateToken(savedClient.getId().toString(), List.of("ROLE_USER"));
     }
 
     @Transactional
     public String login(LoginRequest request) {
-        Client client = userRepository.findByEmail(request.getEmail())
+        Client client = clientRepository.findByEmail(request.getEmail())
                 .orElseThrow(
                         () -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "이메일 또는 비밀번호가 올바르지 않습니다."));
 
@@ -68,7 +69,7 @@ public class AuthService {
         return jwtTokenProvider.generateToken(client.getId().toString(), List.of("ROLE_USER"));
     }
 
-    private boolean matchesPassword(String rawPassword, Client client) {
+    public boolean matchesPassword(String rawPassword, Client client) {
         String storedPassword = client.getPassword();
         if (storedPassword == null || storedPassword.isBlank()) {
             return false;
@@ -82,9 +83,21 @@ public class AuthService {
             }
 
             client.updatePassword(passwordEncoder.encode(rawPassword));
-            userRepository.save(client);
+            clientRepository.save(client);
             return true;
         }
     }
 
+    @Transactional
+    public void changePassword(Long clientId, PasswordUpdateRequest request) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 올바르지 않습니다."));
+        if(!matchesPassword(request.originPassword(), client)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "기존 비밀번호와 일치하지 않습니다.");
+        }        
+        if (matchesPassword(request.newPassword(), client)){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "기존과 다른 비밀번호를 사용해 주세요.");
+        }
+        client.updatePassword(passwordEncoder.encode(request.newPassword()));
+    }
 }

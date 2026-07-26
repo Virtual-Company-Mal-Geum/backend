@@ -1,10 +1,13 @@
 package com.malgeum.geo;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,9 +23,11 @@ import com.malgeum.geo.domain.domain.order.service.OrderService;
 import com.malgeum.geo.domain.domain.order.service.OrderService.OrderSummaryResponse;
 import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.dto.GeoOrderResponse;
+import com.malgeum.geo.dto.PasswordUpdateRequest;
 import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.GeoAsyncWorker;
 
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
 @RestController
@@ -33,7 +38,7 @@ public class GeoController {
     private final AnalysisReportService reportService;
     private final AuthService authService;
     private final GeoAsyncWorker geoAsyncWorker;
-    
+
     @GetMapping("/orders")
     public ResponseEntity<List<OrderSummaryResponse>> getOrders(@AuthenticationPrincipal UserDetails userDetails) {
         Long clientId = Long.valueOf(userDetails.getUsername());
@@ -77,5 +82,23 @@ public class GeoController {
         return ResponseEntity.ok(Map.of(
                 "token", token,
                 "accessToken", token));
+    }
+
+    @PreAuthorize("isAuthenticated()")
+    @GetMapping("/profile")
+    public ResponseEntity<String> profile() {
+        return ResponseEntity.ok("geo-account");
+    }
+
+    @GetMapping("/change_password")
+    public ResponseEntity<String> changePassword() {
+        return ResponseEntity.ok("geo-change_password");
+    }
+
+    @PostMapping("/change_password")
+    public ResponseEntity<Void> changePassword(@AuthenticationPrincipal UserDetails userDetails,
+            @Valid @RequestBody PasswordUpdateRequest request) {
+        authService.changePassword(Long.valueOf(userDetails.getUsername()),request);
+        return ResponseEntity.noContent().build();
     }
 }
