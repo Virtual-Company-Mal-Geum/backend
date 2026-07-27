@@ -1,8 +1,9 @@
-package com.malgeum.geo.dto;
+package com.malgeum.geo.domain.domain.order.dto;
 
 import java.util.List;
 
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
+import com.malgeum.geo.global.common.DataNotFoundException;
 
 public record GeoOrderRequest(
         String targetUrl,
@@ -31,10 +32,6 @@ public record GeoOrderRequest(
     }
 
     public DomainStatus resolvedDomainStatus() {
-        if (serviceType == null || serviceType.isBlank()) {
-            return DomainStatus.ETC;
-        }
-
         String normalized = serviceType.trim().toLowerCase();
         if (normalized.contains("쇼핑몰") || normalized.contains("이커머스") || normalized.contains("ecommerce")) {
             return DomainStatus.ECOMMERCE;
@@ -49,7 +46,7 @@ public record GeoOrderRequest(
                 || normalized.contains("tech")) {
             return DomainStatus.TECHBLOG;
         }
-        return DomainStatus.ETC;
+        throw new DataNotFoundException("[GeoOrderRequest] Invalid DomainStatus inserted.");
     }
 
     public List<String> normalizedAnalysisItems() {

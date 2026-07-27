@@ -93,7 +93,7 @@ public class Order extends BaseTimeEntity {
         this.memo = memo;
         this.resourceKey = UUID.randomUUID().toString();
         this.orderStatus = OrderStatus.ACCEPTED;
-        this.domainStatus = domainStatus == null ? DomainStatus.ETC : domainStatus;
+        this.domainStatus = domainStatus;
     }
 
     public void updateStatus(OrderStatus newStatus) {
@@ -130,7 +130,7 @@ public class Order extends BaseTimeEntity {
     }
 
     public enum DomainStatus {
-        // 뉴스, 이커머스(쇼핑), 교육, 기술 블로그, 기타
+        // 뉴스, 이커머스(쇼핑), 교육, 기술 블로그
         NEWS {
             @Override
             public String toString() {
@@ -153,12 +153,6 @@ public class Order extends BaseTimeEntity {
             @Override
             public String toString() {
                 return "tech_blog";
-            }
-        },
-        ETC {
-            @Override
-            public String toString() {
-                return "etc";
             }
         }
     }
