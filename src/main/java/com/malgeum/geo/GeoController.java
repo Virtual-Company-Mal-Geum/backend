@@ -4,10 +4,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -19,10 +17,12 @@ import java.util.Map;
 
 import com.malgeum.geo.domain.domain.analysisreport.entity.ReportResult;
 import com.malgeum.geo.domain.domain.analysisreport.service.AnalysisReportService;
+import com.malgeum.geo.domain.domain.client.dto.ClientProfileResponse;
+import com.malgeum.geo.domain.domain.client.service.ClientService;
+import com.malgeum.geo.domain.domain.order.dto.GeoOrderRequest;
+import com.malgeum.geo.domain.domain.order.dto.GeoOrderResponse;
 import com.malgeum.geo.domain.domain.order.service.OrderService;
 import com.malgeum.geo.domain.domain.order.service.OrderService.OrderSummaryResponse;
-import com.malgeum.geo.dto.GeoOrderRequest;
-import com.malgeum.geo.dto.GeoOrderResponse;
 import com.malgeum.geo.dto.PasswordUpdateRequest;
 import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.GeoAsyncWorker;
@@ -38,6 +38,7 @@ public class GeoController {
     private final AnalysisReportService reportService;
     private final AuthService authService;
     private final GeoAsyncWorker geoAsyncWorker;
+    private final ClientService clientService;
 
     @GetMapping("/orders")
     public ResponseEntity<List<OrderSummaryResponse>> getOrders(@AuthenticationPrincipal UserDetails userDetails) {
@@ -86,8 +87,9 @@ public class GeoController {
 
     @PreAuthorize("isAuthenticated()")
     @GetMapping("/profile")
-    public ResponseEntity<String> profile() {
-        return ResponseEntity.ok("geo-account");
+    public ResponseEntity<ClientProfileResponse> profile(@AuthenticationPrincipal UserDetails userDetails) {
+        Long clientId = Long.valueOf(userDetails.getUsername());
+        return ResponseEntity.ok(clientService.getProfile(clientId));
     }
 
     @GetMapping("/change_password")

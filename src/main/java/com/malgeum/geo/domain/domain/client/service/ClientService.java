@@ -1,10 +1,13 @@
 package com.malgeum.geo.domain.domain.client.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import com.malgeum.geo.domain.domain.client.dto.ClientProfileResponse;
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.entity.Client.OAuthProvider;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
@@ -31,7 +34,7 @@ public class ClientService {
         return client;
     }
 
-    public Client createOAuthClient(String name, String email,String providerId,OAuthProvider provider) {
+    public Client createOAuthClient(String name, String email, String providerId, OAuthProvider provider) {
         Client client = Client.builder()
                 .password("")
                 .name(name)
@@ -63,11 +66,18 @@ public class ClientService {
         return passwordEncoder.matches(rawPassword, encodedPassword);
     }
 
-    public Client socialLogin(String name, String email,String providerId,OAuthProvider provider) {
+    public Client socialLogin(String name, String email, String providerId, OAuthProvider provider) {
         Optional<Client> _client = this.clientRepository.findByEmail(email);
         if (_client.isPresent()) {
             return _client.get();
         }
-        return this.createOAuthClient(name,email,providerId,provider);
+        return this.createOAuthClient(name, email, providerId, provider);
+    }
+
+    @Transactional(readOnly = true)
+    public ClientProfileResponse getProfile(Long clientId) {
+        Client client = clientRepository.findById(clientId)
+                .orElseThrow(() -> new DataNotFoundException("client not found"));
+        return ClientProfileResponse.from(client);
     }
 }
