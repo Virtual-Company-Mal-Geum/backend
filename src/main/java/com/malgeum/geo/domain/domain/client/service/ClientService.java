@@ -1,6 +1,5 @@
 package com.malgeum.geo.domain.domain.client.service;
 
-import java.util.List;
 import java.util.Optional;
 
 import org.springframework.security.crypto.password.PasswordEncoder;

@@ -104,21 +104,10 @@ public class GeoScrapingService {
                 cleanMetaTags.put(key, content);
             }
         }
-        String cleanHtmlText = limitTextLength(doc.body() == null ? "" : doc.body().text());
-        return new ScrapedData(url, domainStatus.toString(), cleanHtmlText, combinedJsonLd, cleanMetaTags);
+        return new ScrapedData(url, domainStatus.toString(), doc.body().text(), combinedJsonLd, cleanMetaTags);
     }
 
     private boolean hasMeaningfulBody(String htmlText) {
-        return htmlText != null && !htmlText.isBlank() && htmlText.length() >= 100;
-    }
-
-    // AI 서버의 토큰량 한계(4096)로 인해 본문 텍스트는 3500자로 제한. (그냥 앞에서 부터 자름.)
-    // GeoAiService에서 AI 서버에게 전송할때 3500자로 제한하는데 로컬 환경에서도 동일하게 하려고 하는 메서드
-    private String limitTextLength(String text) {
-        final int maxLength = 3500;
-        if (text.length() > maxLength) {
-            text = text.substring(0, maxLength);
-        }
-        return text;
+        return htmlText != null && !htmlText.isBlank();
     }
 }

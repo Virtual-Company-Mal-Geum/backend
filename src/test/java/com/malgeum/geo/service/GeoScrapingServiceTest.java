@@ -29,7 +29,7 @@ public class GeoScrapingServiceTest {
         // given: 타겟 URL 설정
         // 정적 페이지 : https://www.apple.com/kr/shop/buy-iphone/iphone-17-pro
         // 동적 페이지 : https://www.instagram.com/p/DYzfA56jQ2f/
-        String url = "https://www.apple.com/kr/shop/buy-iphone/iphone-17-pro";
+        String url = "https://www.kyonggi.ac.kr/www/contents.do?key=8418&";
 
         // when: 스크래핑 서비스 실행
         long startTime = System.currentTimeMillis();

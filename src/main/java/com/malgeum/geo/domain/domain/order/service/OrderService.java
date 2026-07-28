@@ -10,10 +10,11 @@ import org.springframework.transaction.annotation.Transactional;
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService;
+import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport.ReportStatus;
+import com.malgeum.geo.domain.domain.order.dto.GeoOrderRequest;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
-import com.malgeum.geo.dto.GeoOrderRequest;
 import com.malgeum.geo.global.common.DataNotFoundException;
 
 import lombok.RequiredArgsConstructor;
@@ -73,7 +74,7 @@ public class OrderService {
 
     @Transactional(readOnly = true)
     public List<OrderSummaryResponse> getOrders(Long clientId) {
-        return orderRepository.findAllByClient_IdOrderByCreatedAtDesc(clientId)
+        return orderRepository.findAllByClient_IdAndStatusNotOrderByCreatedAtDesc(clientId,ReportStatus.DELETED)
                 .stream()
                 .map(OrderSummaryResponse::from)
                 .toList();

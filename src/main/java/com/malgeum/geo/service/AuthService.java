@@ -14,7 +14,6 @@ import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.dto.PasswordUpdateRequest;
 import com.malgeum.geo.global.auth.JwtTokenProvider;
-import com.malgeum.geo.global.common.DataNotFoundException;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;

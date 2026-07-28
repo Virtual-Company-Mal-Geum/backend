@@ -8,6 +8,7 @@ import com.malgeum.geo.domain.domain.analysisreport.entity.ReportResult;
 import com.malgeum.geo.domain.domain.analysisreport.repository.AnalysisReportRepository;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
+import com.malgeum.geo.global.common.DataNotFoundException;
 
 import org.springframework.transaction.annotation.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -32,7 +33,7 @@ public class AnalysisReportService {
             throw new IllegalArgumentException("해당 주문에 대한 접근 권한이 없습니다.");
         }
 
-        AnalysisReport report = analysisReportRepository.findByOrder(order)
+        AnalysisReport report = analysisReportRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new IllegalArgumentException("아직 분석이 완료되지 않았습니다."));
 
         return new ReportResult(order.getId(),
@@ -40,5 +41,12 @@ public class AnalysisReportService {
                 order.getOrderStatus().name(),
                 report.getRawAILog(), // AI출력물 JSON 파일
                 report.getCreatedAt());
+    }
+    
+    @Transactional
+    public void deleteReport(Long orderId){
+        AnalysisReport report = analysisReportRepository.findByOrderId(orderId)
+                .orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
+        report.markDeleted();
     }
 }

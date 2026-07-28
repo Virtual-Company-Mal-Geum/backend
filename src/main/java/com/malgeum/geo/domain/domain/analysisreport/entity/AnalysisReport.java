@@ -1,5 +1,6 @@
 package com.malgeum.geo.domain.domain.analysisreport.entity;
 
+import java.time.LocalDateTime;
 import java.util.Map;
 
 import org.hibernate.annotations.JdbcTypeCode;
@@ -53,6 +54,9 @@ public class AnalysisReport extends BaseTimeEntity {
     @Column(name = "report_status", nullable=false,length = 20)
     private ReportStatus reportStatus;
 
+    @Column(name = "deleted_at",updatable = false)
+    private LocalDateTime deletedAt;
+
     @Builder
     public AnalysisReport(Order clientOrder, Map<String, Object> rawScrapedData, Map<String, Object> rawAILog) {
         this.order = clientOrder;
@@ -66,19 +70,20 @@ public class AnalysisReport extends BaseTimeEntity {
         this.processedResult = processedResult;
     }
 
-    public void updateReportStatus(ReportStatus newStatus) {
-        this.reportStatus = newStatus;
-    }
-
     public void expiredReport() {
-        updateReportStatus(ReportStatus.EXPIRED);
+        this.reportStatus=ReportStatus.EXPIRED;
         this.rawScrapedData = null;
         this.rawAILog = null;
         this.processedResult = null;
     }
 
     public enum ReportStatus {
-        // 이용 가능, 만료
-        AVAILABLE, EXPIRED
+        // 이용 가능, 만료, 삭제
+        AVAILABLE, EXPIRED, DELETED;
+    }
+    
+    public void markDeleted(){
+        this.reportStatus=ReportStatus.DELETED;
+        this.deletedAt=LocalDateTime.now();
     }
 }

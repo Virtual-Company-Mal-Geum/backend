@@ -12,10 +12,10 @@ import org.springframework.context.annotation.Import;
 
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
+import com.malgeum.geo.domain.domain.order.dto.GeoOrderRequest;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
-import com.malgeum.geo.dto.GeoOrderRequest;
 
 import lombok.extern.slf4j.Slf4j;
 
