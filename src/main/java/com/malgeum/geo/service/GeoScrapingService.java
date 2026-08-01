@@ -105,7 +105,7 @@ public class GeoScrapingService {
                 cleanMetaTags.put(key, content);
             }
         }
-        return new ScrapedData(url, domainStatus.toString(), toMarkDown(doc), combinedJsonLd, cleanMetaTags);
+        return new ScrapedData(url, domainStatus.toString(), cleanMetaTags, toMarkDown(doc), combinedJsonLd);
     }
 
     private boolean hasMeaningfulBody(String htmlText) {

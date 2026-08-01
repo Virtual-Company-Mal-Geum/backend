@@ -4,6 +4,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.*;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
+import java.util.Map;
+
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,7 +50,7 @@ public class GeoAIServiceTest {
         ScrapedData scrapedData = new ScrapedData(
                 "http://example.com",
                 "ECOMMERCE",
-                "본문 텍스트",
+                Map.of("본문 텍스트","본문 텍스트"),
                 null,
                 null);
         GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);

@@ -8,16 +8,16 @@ import com.fasterxml.jackson.databind.node.NullNode;
 public record ScrapedData(
         String url,
         String domain,
+        Map<String, String> metaTags,
         String htmlText,
-        JsonNode jsonLd,
-        Map<String, String> metaTags) {
+        JsonNode jsonLd) {
     public ScrapedData normalized() {
         return new ScrapedData(
                 url,
                 domain,
+                metaTags == null ? Map.of() : metaTags,
                 trimToMax(htmlText, 3500),
-                jsonLd == null ? NullNode.getInstance() : jsonLd,
-                metaTags == null ? Map.of() : metaTags);
+                jsonLd == null ? NullNode.getInstance() : jsonLd);
     }
 
     private static String trimToMax(String text, int maxLength) {

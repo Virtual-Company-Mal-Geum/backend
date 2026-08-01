@@ -82,7 +82,7 @@ class GeoAsyncWorkerQueueIntegrationTest {
                 .willAnswer(invocation -> {
                     String url = invocation.getArgument(0);
                     DomainStatus domain = invocation.getArgument(1);
-                    return new ScrapedData(url, domain.toString(), "html-" + url, null, null);
+                    return new ScrapedData(url, domain.toString(), null, "html-" + url, null);
                 });
 
         AtomicInteger inFlight = new AtomicInteger(0);
