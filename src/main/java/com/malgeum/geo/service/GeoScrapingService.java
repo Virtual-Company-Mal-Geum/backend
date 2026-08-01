@@ -14,7 +14,8 @@ import com.microsoft.playwright.BrowserType;
 import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 import com.microsoft.playwright.options.WaitUntilState;
-
+import com.vladsch.flexmark.html2md.converter.FlexmarkHtmlConverter;
+import com.vladsch.flexmark.util.data.MutableDataSet;
 
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -87,13 +88,13 @@ public class GeoScrapingService {
                 .collect(Collectors.joining(", ", "[", "]"));
         ObjectMapper objectMapper = new ObjectMapper();
         JsonNode combinedJsonLd = null;
-        try{
-            combinedJsonLd = objectMapper.readTree(cleanJsonLd);  
-        } catch (Exception e){
+        try {
+            combinedJsonLd = objectMapper.readTree(cleanJsonLd);
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
-        doc.select("header, nav, footer, script, style, noscript, iframe, svg").remove();
+        doc.select("nav, footer, script, style, noscript, iframe, svg").remove();
         Map<String, String> cleanMetaTags = new HashMap<>();
         for (Element meta : doc.select("meta")) {
             String key = meta.attr("name");
@@ -104,10 +105,28 @@ public class GeoScrapingService {
                 cleanMetaTags.put(key, content);
             }
         }
-        return new ScrapedData(url, domainStatus.toString(), doc.body().text(), combinedJsonLd, cleanMetaTags);
+        return new ScrapedData(url, domainStatus.toString(), toMarkDown(doc), combinedJsonLd, cleanMetaTags);
     }
 
     private boolean hasMeaningfulBody(String htmlText) {
         return htmlText != null && !htmlText.isBlank();
+    }
+
+    private final FlexmarkHtmlConverter HTML_TO_MARKDOWN = FlexmarkHtmlConverter.builder(
+            new MutableDataSet().set(FlexmarkHtmlConverter.SETEXT_HEADINGS, false)).build();
+
+    private String toMarkDown(Document doc) {
+        Element root = doc.selectFirst("article");
+        if (root == null)
+            root = doc.selectFirst("main");
+        if (root == null)
+            root = doc.body();
+        if (root == null)
+            return "";
+
+        Element clean = root.clone();
+        clean.select("script, style, noscript, iframe, svg").remove();
+
+        return HTML_TO_MARKDOWN.convert(clean).strip();
     }
 }

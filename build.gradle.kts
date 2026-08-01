@@ -51,6 +51,8 @@ dependencies {
 	implementation("org.apache.tomcat.embed:tomcat-embed-core")
 	//playwright
 	implementation("com.microsoft.playwright:playwright:1.60.0")
+	//flexmark
+	implementation("com.vladsch.flexmark:flexmark-html2md-converter:0.64.8")
 }
 
 tasks.withType<Test> {
