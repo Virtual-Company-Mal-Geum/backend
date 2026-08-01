@@ -59,6 +59,12 @@ public class GeoController {
         return ResponseEntity.ok(report);
     }
 
+    @PostMapping("/report/delete/{orderId}")
+    public ResponseEntity<Void> deleteReport(@PathVariable("orderId") Long orderId) {
+        reportService.deleteReport(orderId);
+        return ResponseEntity.noContent().build();
+    }
+
     @GetMapping("/signup")
     public ResponseEntity<String> signUp(SignUpForm form) {
         return ResponseEntity.ok("geo-signup");

@@ -28,7 +28,6 @@ public class OrderService {
     private final ClientRepository clientRepository;
     private final AnalysisJobService analysisJobService;
 
-    @SuppressWarnings("null")
     @Transactional
     public Long acceptOrder(String targetUrl, DomainStatus domainStatus) {
         return acceptOrder(new GeoOrderRequest(
@@ -44,7 +43,6 @@ public class OrderService {
                 null));
     }
 
-    @SuppressWarnings("null")
     @Transactional
     public Long acceptOrder(GeoOrderRequest orderRequest) {
         Order savedOrder = saveOrder(orderRequest);
