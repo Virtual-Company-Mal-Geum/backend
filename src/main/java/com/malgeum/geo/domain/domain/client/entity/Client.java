@@ -38,15 +38,19 @@ public class Client extends BaseTimeEntity {
     @Column(name = "phone", length = 20)
     private String phone;
 
-    @Column(name="provider_id")
+    @Column(name = "provider_id")
     private String providerId;
-    
+
     @Enumerated(EnumType.STRING)
     private OAuthProvider provider;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false, length = 20)
     private ClientStatus status;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "plan", updatable = true,nullable = false, length = 20)
+    private ClientPlan plan;
 
     @Builder
     public Client(String password, String name, String company, String email, String phone) {
@@ -56,35 +60,58 @@ public class Client extends BaseTimeEntity {
         this.email = email;
         this.phone = phone;
         this.status = ClientStatus.ACTIVE;
+        this.plan = ClientPlan.FREE;
     }
 
     @Builder
-    public Client(String password, String name, String company, String email, String phone, String providerId, OAuthProvider provider) {
+    public Client(String password, String name, String company, String email, String phone, String providerId,
+            OAuthProvider provider) {
         this.password = password;
         this.name = name;
         this.company = company;
         this.email = email;
         this.phone = phone;
-        this.providerId=providerId;
-        this.provider=OAuthProvider.GOOGLE;
+        this.providerId = providerId;
+        this.provider = OAuthProvider.GOOGLE;
         this.status = ClientStatus.ACTIVE;
+        this.plan = ClientPlan.FREE;
     }
 
     public enum ClientStatus {
         ACTIVE, EXPIRED
     }
 
+    public enum ClientPlan {
+        FREE, BASIC, PRO, ENTERPRISE
+    }
+
     public enum OAuthProvider {
         GOOGLE
     }
 
-    public String updatePassword(String password){
-        this.password=password;
+    public String updatePassword(String password) {
+        this.password = password;
         return password;
     }
 
     public void linkOAuth(OAuthProvider provider, String providerId) {
         this.provider = provider;
         this.providerId = providerId;
+    }
+
+    public void updatePlanFree() {
+        this.plan = ClientPlan.FREE;
+    }
+
+    public void updatePlanBasic() {
+        this.plan = ClientPlan.BASIC;
+    }
+
+    public void updatePlanPro() {
+        this.plan = ClientPlan.PRO;
+    }
+
+    public void updatePlanEnterprise() {
+        this.plan = ClientPlan.ENTERPRISE;
     }
 }
