@@ -1,7 +1,6 @@
 package com.malgeum.geo.domain.domain.order.service;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -10,7 +9,6 @@ import org.springframework.transaction.annotation.Transactional;
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisJobService;
-import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport.ReportStatus;
 import com.malgeum.geo.domain.domain.order.dto.GeoOrderRequest;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
@@ -68,14 +66,6 @@ public class OrderService {
     public Order getOrder(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
-    }
-
-    @Transactional(readOnly = true)
-    public List<OrderSummaryResponse> getOrders(Long clientId) {
-        return orderRepository.findAllByClient_IdAndStatusNotOrderByCreatedAtDesc(clientId,ReportStatus.DELETED)
-                .stream()
-                .map(OrderSummaryResponse::from)
-                .toList();
     }
 
     public Order createOrder(Client client, GeoOrderRequest orderRequest) {

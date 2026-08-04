@@ -17,6 +17,7 @@ import java.util.Map;
 
 import com.malgeum.geo.domain.domain.analysisreport.entity.ReportResult;
 import com.malgeum.geo.domain.domain.analysisreport.service.AnalysisReportService;
+import com.malgeum.geo.domain.domain.analysisreport.service.AnalysisReportService.ReportSummaryResponse;
 import com.malgeum.geo.domain.domain.client.dto.ClientProfileResponse;
 import com.malgeum.geo.domain.domain.client.service.ClientService;
 import com.malgeum.geo.domain.domain.order.dto.GeoOrderRequest;
@@ -40,10 +41,10 @@ public class GeoController {
     private final GeoAsyncWorker geoAsyncWorker;
     private final ClientService clientService;
 
-    @GetMapping("/orders")
-    public ResponseEntity<List<OrderSummaryResponse>> getOrders(@AuthenticationPrincipal UserDetails userDetails) {
+    @GetMapping("/reports")
+    public ResponseEntity<List<ReportSummaryResponse>> getReports(@AuthenticationPrincipal UserDetails userDetails) {
         Long clientId = Long.valueOf(userDetails.getUsername());
-        return ResponseEntity.ok(orderService.getOrders(clientId));
+        return ResponseEntity.ok(reportService.getReports(clientId));
     }
 
     @PostMapping("/order")

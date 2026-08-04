@@ -1,9 +1,13 @@
 package com.malgeum.geo.domain.domain.analysisreport.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
+
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 
 import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport;
+import com.malgeum.geo.domain.domain.analysisreport.entity.AnalysisReport.ReportStatus;
 import com.malgeum.geo.domain.domain.analysisreport.entity.ReportResult;
 import com.malgeum.geo.domain.domain.analysisreport.repository.AnalysisReportRepository;
 import com.malgeum.geo.domain.domain.order.entity.Order;
@@ -42,11 +46,39 @@ public class AnalysisReportService {
                 report.getRawAILog(), // AI출력물 JSON 파일
                 report.getCreatedAt());
     }
-    
+
+    @Transactional(readOnly = true)
+    public List<ReportSummaryResponse> getReports(Long clientId) {
+        return analysisReportRepository
+                .findAllByOrder_Client_IdAndReportStatusNotOrderByCreatedAtDesc(clientId, ReportStatus.DELETED)
+                .stream()
+                .map(ReportSummaryResponse::from)
+                .toList();
+    }
+
     @Transactional
-    public void deleteReport(Long orderId){
+    public void deleteReport(Long orderId) {
         AnalysisReport report = analysisReportRepository.findByOrderId(orderId)
                 .orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
         report.markDeleted();
+    }
+
+    public record ReportSummaryResponse(
+            Long orderId,
+            String siteName,
+            String targetUrl,
+            String domainStatus,
+            String jobStatus,
+            LocalDateTime createdAt) {
+        public static ReportSummaryResponse from(AnalysisReport report) {
+            Order order = report.getOrder();
+            return new ReportSummaryResponse(
+                    order.getId(),
+                    order.getSiteName(),
+                    order.getTargetUrl(),
+                    order.getDomainStatus().name(),
+                    order.getOrderStatus().name(),
+                    report.getCreatedAt());
+        }
     }
 }

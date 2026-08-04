@@ -4,7 +4,6 @@ import java.time.LocalDateTime;
 import java.util.Map;
 
 import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.annotations.Type;
 import org.hibernate.type.SqlTypes;
 
 import com.malgeum.geo.domain.BaseTimeEntity;
