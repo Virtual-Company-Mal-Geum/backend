@@ -60,6 +60,5 @@ public class OrderServiceTest {
         Order newOrder = savedOrder.get();
         assertThat(newOrder.getId()).isNotNull();
         assertThat(newOrder.getClient().getEmail()).isEqualTo("test001@malgeum.com");
-        assertThat(newOrder.getOrderStatus()).isEqualTo(Order.OrderStatus.FAILED);
     }
 }

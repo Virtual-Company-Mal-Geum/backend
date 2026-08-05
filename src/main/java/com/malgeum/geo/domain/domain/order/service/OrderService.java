@@ -1,7 +1,5 @@
 package com.malgeum.geo.domain.domain.order.service;
 
-import java.time.LocalDateTime;
-
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -83,23 +81,5 @@ public class OrderService {
                 .memo(orderRequest.memo())
                 .domainStatus(orderRequest.resolvedDomainStatus())
                 .build();
-    }
-
-    public record OrderSummaryResponse(
-            Long orderId,
-            String siteName,
-            String targetUrl,
-            String domainStatus,
-            String jobStatus,
-            LocalDateTime createdAt) {
-        public static OrderSummaryResponse from(Order order) {
-            return new OrderSummaryResponse(
-                    order.getId(),
-                    order.getSiteName(),
-                    order.getTargetUrl(),
-                    order.getDomainStatus().name(),
-                    order.getOrderStatus().name(),
-                    order.getCreatedAt());
-        }
     }
 }

@@ -8,5 +8,6 @@ public record ReportResult(
         String targetUrl,
         String jobStatus,
         Map<String, Object> aiResult,
+        String errorMessage,
         LocalDateTime createdAt) {
 }

@@ -22,7 +22,6 @@ import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
-import com.malgeum.geo.domain.domain.order.entity.Order.OrderStatus;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
 import com.malgeum.geo.dto.ScrapedData;
@@ -109,7 +108,5 @@ class GeoAsyncWorkerQueueIntegrationTest {
         assertThat(calledUrls).containsExactlyElementsOf(expectedUrls);
         assertThat(analysisJobRepository.findAll())
                 .allMatch(job -> job.getStatus() == AnalysisJobStatus.SUCCEEDED);
-        assertThat(orderRepository.findAll())
-                .allMatch(order -> order.getOrderStatus() == OrderStatus.COMPLETED);
     }
 }

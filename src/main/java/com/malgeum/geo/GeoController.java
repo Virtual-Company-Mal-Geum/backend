@@ -23,7 +23,6 @@ import com.malgeum.geo.domain.domain.client.service.ClientService;
 import com.malgeum.geo.domain.domain.order.dto.GeoOrderRequest;
 import com.malgeum.geo.domain.domain.order.dto.GeoOrderResponse;
 import com.malgeum.geo.domain.domain.order.service.OrderService;
-import com.malgeum.geo.domain.domain.order.service.OrderService.OrderSummaryResponse;
 import com.malgeum.geo.dto.PasswordUpdateRequest;
 import com.malgeum.geo.service.AuthService;
 import com.malgeum.geo.service.GeoAsyncWorker;

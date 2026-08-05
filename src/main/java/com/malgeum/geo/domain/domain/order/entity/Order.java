@@ -72,10 +72,6 @@ public class Order extends BaseTimeEntity {
     @Column(name = "resource_key", nullable = false, length = 36, unique = true)
     private String resourceKey;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "order_status", nullable = false, length = 20)
-    private OrderStatus orderStatus;
-
     @Builder
     public Order(Client client, String targetUrl, String siteName, String serviceType, String targetEngine,
             String analysisItems, String contactName, String contactPhone,
@@ -92,12 +88,7 @@ public class Order extends BaseTimeEntity {
         this.contactOrg = contactOrg;
         this.memo = memo;
         this.resourceKey = UUID.randomUUID().toString();
-        this.orderStatus = OrderStatus.ACCEPTED;
         this.domainStatus = domainStatus;
-    }
-
-    public void updateStatus(OrderStatus newStatus) {
-        this.orderStatus = newStatus;
     }
 
     public List<String> getAnalysisItemList() {
@@ -108,25 +99,6 @@ public class Order extends BaseTimeEntity {
                 .map(String::trim)
                 .filter(item -> !item.isBlank())
                 .toList();
-    }
-
-    public enum OrderStatus {
-        ACCEPTED, // 주문 접수 및 작업 등록 완료
-        PROCESSING, // 크롤링·AI 분석·재시도 등을 포함해 처리 중
-        COMPLETED, // 분석 리포트 생성 완료
-        FAILED // 더 이상 처리할 수 없는 최종 실패
-    }
-
-    public void markProcessing() {
-        this.orderStatus = OrderStatus.PROCESSING;
-    }
-
-    public void markCompleted() {
-        this.orderStatus = OrderStatus.COMPLETED;
-    }
-
-    public void markFailed() {
-        this.orderStatus = OrderStatus.FAILED;
     }
 
     public enum DomainStatus {
