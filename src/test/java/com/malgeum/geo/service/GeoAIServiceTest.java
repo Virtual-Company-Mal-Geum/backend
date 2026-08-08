@@ -50,7 +50,6 @@ public class GeoAIServiceTest {
         ScrapedData scrapedData = new ScrapedData(
                 "http://example.com",
                 "ECOMMERCE",
-                Map.of("본문 텍스트","본문 텍스트"),
                 null,
                 null);
         GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);

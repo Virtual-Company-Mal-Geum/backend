@@ -22,7 +22,7 @@ public class AiRestClientConfig {
                 // [의도] AI 모델의 추론 연산은 VRAM 상태와 입력 길이에 따라 5초 ~ 15초 이상 소요될 수 있습니다.
                 // Spring의 기본 Read Timeout(보통 무한대이거나 너무 짧음)에 의존하지 않고, 명시적으로 60초의 넉넉한 대기 시간을 설정하여 커넥션 끊김을 방지합니다.
                 JdkClientHttpRequestFactory requestFactory = new JdkClientHttpRequestFactory(httpClient);
-                requestFactory.setReadTimeout(Duration.ofSeconds(60));
+                requestFactory.setReadTimeout(Duration.ofSeconds(200));
                 builder.requestFactory(requestFactory);
         };
     }

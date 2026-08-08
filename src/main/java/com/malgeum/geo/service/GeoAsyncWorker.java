@@ -84,7 +84,7 @@ public class GeoAsyncWorker {
 
         analysisExecutionService.saveAnalysisReport(
                 orderId,
-                context.scrapedData().htmlText(),
+                context.scrapedData().refinedHtmlText(),
                 context.aiLogMap());
     }
 

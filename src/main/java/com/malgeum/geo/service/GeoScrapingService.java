@@ -40,7 +40,7 @@ public class GeoScrapingService {
             log.info("[Geo Scraping] Jsoup 스크래핑 시작 - URL: {}", url);
             ScrapedData jsoupResult = scrapeByJsoup(url, domainStatus);
 
-            if (hasMeaningfulBody(jsoupResult.htmlText())) {
+            if (hasMeaningfulBody(jsoupResult.refinedHtmlText())) {
                 return jsoupResult;
             }
 
@@ -94,18 +94,7 @@ public class GeoScrapingService {
             e.printStackTrace();
         }
 
-        doc.select("nav, footer, script, style, noscript, iframe, svg").remove();
-        Map<String, String> cleanMetaTags = new HashMap<>();
-        for (Element meta : doc.select("meta")) {
-            String key = meta.attr("name");
-            if (key.isEmpty())
-                key = meta.attr("property"); // og:, twitter: 등
-            String content = meta.attr("content");
-            if (!key.isEmpty() && !content.isEmpty()) {
-                cleanMetaTags.put(key, content);
-            }
-        }
-        return new ScrapedData(url, domainStatus.toString(), cleanMetaTags, toMarkDown(doc), combinedJsonLd);
+        return new ScrapedData(url, domainStatus.toString(), toMarkDown(doc), combinedJsonLd);
     }
 
     private boolean hasMeaningfulBody(String htmlText) {

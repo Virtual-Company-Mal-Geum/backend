@@ -7,6 +7,7 @@ import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientResponseException;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.malgeum.geo.dto.GeoEvaluationRequest;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
 
@@ -19,7 +20,7 @@ public class GeoAiService {
     private final RestClient restClient;
 
     public GeoAiService(RestClient.Builder restClientBuilder,
-        @Value("${ai.server.base-url}") String aiServerBaseUrl) {
+            @Value("${ai.server.base-url}") String aiServerBaseUrl) {
         this.restClient = restClientBuilder
                 .baseUrl(aiServerBaseUrl)
                 .build();
@@ -37,10 +38,11 @@ public class GeoAiService {
 
         } catch (ResourceAccessException e) {
             log.error("[GeoAiService] AI 서버 응답 지연 또는 다운: {}", e.getMessage());
-            return new GeoEvaluationResponse("error","text","AI 서버 응답 지연(Timeout).");
+            return new GeoEvaluationResponse("error", null, null, "blank-text", "AI 서버 응답 지연(Timeout).");
         } catch (RestClientResponseException e) {
             log.error("[GeoAiService] AI 연산 중 오류 발생 (Status: {}): {}", e.getStatusCode(), e.getMessage());
-            return new GeoEvaluationResponse("error","text", "AI 연산 중 오류 발생: " + e.getStatusCode());
+            return new GeoEvaluationResponse("error", null, null, "blank-text",
+                    "AI 연산 중 오류 발생: " + e.getStatusCode());
         }
     }
 }

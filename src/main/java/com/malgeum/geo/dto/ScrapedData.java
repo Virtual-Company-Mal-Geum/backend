@@ -1,22 +1,18 @@
 package com.malgeum.geo.dto;
 
-import java.util.Map;
-
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 
 public record ScrapedData(
         String url,
         String domain,
-        Map<String, String> metaTags,
-        String htmlText,
+        String refinedHtmlText,
         JsonNode jsonLd) {
     public ScrapedData normalized() {
         return new ScrapedData(
                 url,
                 domain,
-                metaTags == null ? Map.of() : metaTags,
-                trimToMax(htmlText, 3500),
+                refinedHtmlText,
                 jsonLd == null ? NullNode.getInstance() : jsonLd);
     }
 

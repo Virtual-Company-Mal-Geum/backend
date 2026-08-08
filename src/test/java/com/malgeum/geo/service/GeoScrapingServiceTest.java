@@ -38,12 +38,12 @@ public class GeoScrapingServiceTest {
 
         // then: 결과 검증
         log.info("스크래핑 소요 시간: {} ms", (endTime - startTime));
-        log.info("추출된 본문 길이: {} 자", result.htmlText().length());
-        log.info("추출된 본문 내용 : {}", result.htmlText());
+        log.info("추출된 본문 길이: {} 자", result.refinedHtmlText().length());
+        log.info("추출된 본문 내용 : {}", result.refinedHtmlText());
         log.info("추출된 JSON-LD: {}", result.jsonLd());
 
         assertNotNull(result);
-        assertThat(result.htmlText()).isNotBlank();
+        assertThat(result.refinedHtmlText()).isNotBlank();
 
         // 3. 만약 해당 사이트에 JSON-LD가 있다면, "{" 로 시작하는 포맷이어야 함
         // (주의: 타겟 URL에 JSON-LD가 없는 사이트라면 이 검증은 빼거나 조건부로 처리해야 합니다)
@@ -67,7 +67,7 @@ public class GeoScrapingServiceTest {
         ObjectNode payload = objectMapper.createObjectNode();
         payload.put("url", url);
         payload.put("domain",DomainStatus.ECOMMERCE.toString());
-        payload.put("html_text", result.htmlText().substring(0,3500));
+        payload.put("html_text", result.refinedHtmlText().substring(0,3500));
 
         // 중요: set()이 아니라 put()을 써야 함. 왜냐하면, put()이 json_ld를 문자열로 넣기 때문이다.
         payload.put("json_ld", jsonLdString);
@@ -123,7 +123,7 @@ public class GeoScrapingServiceTest {
             ScrapedData result = geoScrapingService.extractDataForAi(url, DomainStatus.ECOMMERCE);
 
             assertNotNull(result);
-            assertThat(result.htmlText()).contains("THIS_TEXT_IS_RENDERED_BY_BROWSER_RUNTIME");
+            assertThat(result.refinedHtmlText()).contains("THIS_TEXT_IS_RENDERED_BY_BROWSER_RUNTIME");
             assertThat(result.jsonLd().toString()).contains("\"@type\":\"Organization\"");
         } finally {
             server.stop(0);
