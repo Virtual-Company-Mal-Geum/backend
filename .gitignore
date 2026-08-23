@@ -39,8 +39,5 @@ out/
 *.yml
 *.yaml
 application.yaml
-
 *.xml
 *.log
-*.yaml
-*.yml
