@@ -40,6 +40,12 @@ public class GeoScrapingService {
     private static final Pattern EDU_ORG_KEYWORDS = Pattern.compile("학원|어학원|아카데미|교습소|공부방|학습관");
     private static final Pattern COURSE_KEYWORDS = Pattern.compile("커리큘럼|수강 대상|강의 소개|course curriculum");
 
+    /** AI 서버(geo_gateway.py)의 하드 차단선과 동일. 300자 기준은 AI 서버가 붙이는 품질 경고일 뿐 재크롤 기준이 아니다. */
+    private static final int HARD_BLOCK_MIN_CHARS = 50;
+    private static final Pattern SHELL_PLACEHOLDER = Pattern.compile(
+            "^(loading\\.*|please wait\\.*|잠시만\\s*기다려\\s*주세요\\.*|please enable javascript.*)$",
+            Pattern.CASE_INSENSITIVE);
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private final FlexmarkHtmlConverter htmlToMarkdown = FlexmarkHtmlConverter.builder(
@@ -59,10 +65,10 @@ public class GeoScrapingService {
                     .timeout(5000)
                     .get();
             String mainContent = toMarkDown(doc);
-            if (hasMeaningfulBody(mainContent)) {
+            if (isSufficientBody(mainContent)) {
                 return buildScrapedData(url, domainStatus, doc, mainContent);
             }
-            log.warn("[Geo Scraping] Jsoup 결과 본문이 비어 Playwright로 폴백 - URL: {}", url);
+            log.warn("[Geo Scraping] Jsoup 결과 본문이 부족(50자 미만 또는 shell)해 Playwright로 폴백 - URL: {}", url);
         } catch (Exception jsoupError) {
             log.warn("[Geo Scraping] Jsoup 실패, Playwright로 폴백 - URL: {}, 원인: {}", url, jsoupError.getMessage());
         }
@@ -70,7 +76,7 @@ public class GeoScrapingService {
         try {
             Document doc = renderByPlaywright(url);
             String mainContent = toMarkDown(doc);
-            if (!hasMeaningfulBody(mainContent)) {
+            if (!isSufficientBody(mainContent)) {
                 throw new RuntimeException("본문을 추출할 수 없습니다.");
             }
             return buildScrapedData(url, domainStatus, doc, mainContent);
@@ -83,7 +89,7 @@ public class GeoScrapingService {
         }
     }
 
-    private Document renderByPlaywright(String url) {
+    Document renderByPlaywright(String url) {
         try (Playwright playwright = Playwright.create()) {
             Browser browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(true));
             Page page = browser.newPage();
@@ -103,8 +109,20 @@ public class GeoScrapingService {
         return new ScrapedData(url, domainStatus.toString(), htmlText, jsonLd);
     }
 
-    private boolean hasMeaningfulBody(String htmlText) {
-        return htmlText != null && !htmlText.isBlank();
+    /**
+     * 정적(Jsoup) 결과를 채택할지 판단한다. AI 서버의 하드 차단선([MAIN_CONTENT] 50자 미만)과
+     * "Loading..." 같은 명백한 SPA shell placeholder만 기준으로 삼는다. 300자 기준은 AI 서버가
+     * content_warning으로 붙이는 품질 경고일 뿐이라 여기서 재크롤 트리거로 쓰지 않는다.
+     */
+    boolean isSufficientBody(String mainContent) {
+        if (mainContent == null) {
+            return false;
+        }
+        String trimmed = mainContent.strip();
+        if (trimmed.length() < HARD_BLOCK_MIN_CHARS) {
+            return false;
+        }
+        return !SHELL_PLACEHOLDER.matcher(trimmed).matches();
     }
 
     /**

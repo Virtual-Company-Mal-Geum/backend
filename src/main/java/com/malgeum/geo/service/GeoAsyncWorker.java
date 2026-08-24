@@ -7,7 +7,6 @@ import java.util.Optional;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.malgeum.geo.domain.domain.analysisjob.entity.AnalysisJob;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisExecutionService;
@@ -96,25 +95,36 @@ public class GeoAsyncWorker {
         GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
         GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
 
-        if (!"success".equals(aiResponse.status())) {
-            throw new IllegalStateException("AI 서버 처리 실패: " + aiResponse.reason());
+        String status = aiResponse.status() != null ? aiResponse.status() : "unknown";
+        switch (status) {
+            case "success" -> {
+                // 정상 처리, 아래에서 결과를 그대로 저장한다.
+            }
+            case "insufficient_content" -> throw new IllegalStateException(
+                    "AI 서버 처리 실패(본문 부족, 재크롤/사용자 오류 대상): " + aiResponse.detail());
+            case "parse_error" -> throw new IllegalStateException(
+                    "AI 서버 처리 실패(모델 응답 파싱 실패): " + aiResponse.detail());
+            default -> throw new IllegalStateException(
+                    "AI 서버 처리 실패(" + aiResponse.reason() + "): " + aiResponse.detail());
         }
 
-        String detail = aiResponse.detail() != null ? aiResponse.detail() : "";
+        if (aiResponse.contentWarning() != null) {
+            log.warn("[AsyncWorker] AI 채점 품질 경고 - orderId: {}, warning: {}, mainContentLength: {}",
+                    orderId, aiResponse.contentWarning(), aiResponse.mainContentLength());
+        }
 
+        ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> aiLogMap = new HashMap<>();
-        aiLogMap.put("detail", detail);
-        try {
-            ObjectMapper mapper = new ObjectMapper();
-            JsonNode aiJson = mapper.readTree(detail);
-            JsonNode suggestedJsonLd = aiJson.get("suggested_json_ld");
-            if (suggestedJsonLd != null && !suggestedJsonLd.isNull()) {
-                aiLogMap.put("suggested_json_ld", mapper.convertValue(suggestedJsonLd, Object.class));
-                log.info("[AsyncWorker] suggested_json_ld 추출 성공 - OrderID: {}", orderId);
-            }
-        } catch (Exception parseEx) {
-            log.warn("[AsyncWorker] suggested_json_ld 파싱 실패 (무시) - OrderID: {}, 원인: {}",
-                    orderId, parseEx.getMessage());
+        aiLogMap.put("result", mapper.convertValue(aiResponse.result(), Object.class));
+        if (aiResponse.contentWarning() != null) {
+            aiLogMap.put("content_warning", aiResponse.contentWarning());
+            aiLogMap.put("main_content_length", aiResponse.mainContentLength());
+        }
+        if (aiResponse.cjkNormalized() != null) {
+            aiLogMap.put("cjk_normalized", aiResponse.cjkNormalized());
+        }
+        if (aiResponse.jsonldInput() != null) {
+            aiLogMap.put("jsonld_input", mapper.convertValue(aiResponse.jsonldInput(), Object.class));
         }
 
         return new AnalysisReportContext(scrapedData, aiLogMap);

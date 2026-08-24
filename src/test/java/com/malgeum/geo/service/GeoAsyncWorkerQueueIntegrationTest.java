@@ -100,7 +100,7 @@ class GeoAsyncWorkerQueueIntegrationTest {
                         return new GeoEvaluationResponse(
                                 "success", "ecommerce",
                                 new ObjectMapper().readTree("{\"score\":95}"),
-                                null, null);
+                                null, null, null, null, null, null);
                     } finally {
                         inFlight.decrementAndGet();
                     }
