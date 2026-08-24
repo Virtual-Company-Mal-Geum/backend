@@ -97,16 +97,16 @@ public class GeoAsyncWorker {
         GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
 
         if (!"success".equals(aiResponse.status())) {
-            throw new IllegalStateException("AI 서버 처리 실패: " + aiResponse.content());
+            throw new IllegalStateException("AI 서버 처리 실패: " + aiResponse.reason());
         }
 
-        String content = aiResponse.content() != null ? aiResponse.content() : "";
+        String detail = aiResponse.detail() != null ? aiResponse.detail() : "";
 
         Map<String, Object> aiLogMap = new HashMap<>();
-        aiLogMap.put("content", content);
+        aiLogMap.put("detail", detail);
         try {
             ObjectMapper mapper = new ObjectMapper();
-            JsonNode aiJson = mapper.readTree(content);
+            JsonNode aiJson = mapper.readTree(detail);
             JsonNode suggestedJsonLd = aiJson.get("suggested_json_ld");
             if (suggestedJsonLd != null && !suggestedJsonLd.isNull()) {
                 aiLogMap.put("suggested_json_ld", mapper.convertValue(suggestedJsonLd, Object.class));

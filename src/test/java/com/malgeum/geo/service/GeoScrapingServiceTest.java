@@ -29,7 +29,8 @@ public class GeoScrapingServiceTest {
         // given: 타겟 URL 설정
         // 정적 페이지 : https://www.apple.com/kr/shop/buy-iphone/iphone-17-pro
         // 동적 페이지 : https://www.instagram.com/p/DYzfA56jQ2f/
-        String url = "https://www.kyonggi.ac.kr/www/contents.do?key=8418&";
+        // https://www.kyonggi.ac.kr/www/contents.do?key=8418&
+        String url = "https://www.megastudy.net/tpass/2026/0604_ps34470/main.asp?SubMainType=S&mOne=season&mTwo=693";
 
         // when: 스크래핑 서비스 실행
         long startTime = System.currentTimeMillis();

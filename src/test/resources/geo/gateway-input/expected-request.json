@@ -1,0 +1,28 @@
+{
+  "url": "https://example.com/geo-fixture/static-page.html",
+  "domain": "news",
+  "documentType": "NEWS_ARTICLE",
+  "htmlTextLabelOrder": ["DOCUMENT_TYPE", "TITLE", "AUTHOR", "PUBLISHED", "PUBLISHER", "MAIN_CONTENT"],
+  "jsonLd": [
+    {"@context": "https://schema.org", "@type": "NewsArticle", "headline": "싱가포르 유학생 예산 리포트"},
+    {"@context": "https://schema.org", "@type": "Person", "name": "김지한"}
+  ],
+  "mainContentMustContain": [
+    "MAIN_HEADING",
+    "SUB_HEADING",
+    "PARAGRAPH_ONE",
+    "PARAGRAPH_TWO",
+    "UNORDERED_ITEM_ONE",
+    "UNORDERED_ITEM_TWO",
+    "ORDERED_ITEM_ONE",
+    "ORDERED_ITEM_TWO",
+    "TABLE_HEADER_식당",
+    "TABLE_CELL_맥스웰",
+    "CODE_BLOCK_curl"
+  ],
+  "mainContentMustNotContain": [
+    "NAV_BOILERPLATE_TEXT_SHOULD_NOT_APPEAR",
+    "FOOTER_BOILERPLATE_TEXT_SHOULD_NOT_APPEAR",
+    "script boilerplate should not appear"
+  ]
+}

@@ -1,7 +1,7 @@
 package com.malgeum.geo.dto;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.JsonNodeFactory;
 
 public record ScrapedData(
         String url,
@@ -13,12 +13,6 @@ public record ScrapedData(
                 url,
                 domain,
                 refinedHtmlText,
-                jsonLd == null ? NullNode.getInstance() : jsonLd);
-    }
-
-    private static String trimToMax(String text, int maxLength) {
-        if (text == null)
-            return "";
-        return text.length() > maxLength ? text.substring(0, maxLength) : text;
+                jsonLd == null ? JsonNodeFactory.instance.arrayNode() : jsonLd);
     }
 }

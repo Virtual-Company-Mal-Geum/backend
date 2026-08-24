@@ -72,6 +72,15 @@ public class AnalysisReportService {
                     AnalysisReport report = reportsByOrderId.get(order.getId());
                     return report == null || report.getReportStatus() != ReportStatus.DELETED;
                 })
+                .filter(order -> {
+                    boolean hasJob = jobsByOrderId.containsKey(order.getId());
+                    if (!hasJob) {
+                        // AnalysisJob 도입 이전에 생성된 레거시 주문 등 정합성이 깨진 데이터 방어
+                        log.warn("[AnalysisReportService] orderId={}에 대응하는 AnalysisJob이 없어 목록에서 제외합니다.",
+                                order.getId());
+                    }
+                    return hasJob;
+                })
                 .map(order -> ReportSummaryResponse.from(order, jobsByOrderId.get(order.getId())))
                 .toList();
     }

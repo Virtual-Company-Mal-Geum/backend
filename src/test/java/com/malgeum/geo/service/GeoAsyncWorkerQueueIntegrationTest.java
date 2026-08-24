@@ -23,6 +23,7 @@ import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.domain.domain.order.entity.Order;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.domain.domain.order.repository.OrderRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.malgeum.geo.dto.GeoEvaluationResponse;
 import com.malgeum.geo.dto.ScrapedData;
 
@@ -96,7 +97,10 @@ class GeoAsyncWorkerQueueIntegrationTest {
                         String url = invocation.getArgument(0, com.malgeum.geo.dto.GeoEvaluationRequest.class).url();
                         calledUrls.add(url);
                         Thread.sleep(50L);
-                        return new GeoEvaluationResponse("success", "text", "{\"score\":95}");
+                        return new GeoEvaluationResponse(
+                                "success", "ecommerce",
+                                new ObjectMapper().readTree("{\"score\":95}"),
+                                null, null);
                     } finally {
                         inFlight.decrementAndGet();
                     }
