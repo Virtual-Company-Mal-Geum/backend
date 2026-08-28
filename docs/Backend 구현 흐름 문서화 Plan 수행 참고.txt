@@ -1,0 +1,231 @@
+문서 상단에 다음 snapshot 정보를 기록한다.
+- 검증 날짜
+- 현재 branch
+- HEAD commit
+- working tree가 clean인지 dirty인지
+- 확인한 범위
+- 실행하지 못한 검증
+현재 알려진 출발점은 develop, 485dd9f이지만 새 세션에서 반드시 다시 확인한다.
+현재 작업 트리에는 다음과 같은 기존 사용자 변경이 있을 가능성이 있다.
+- 루트 Markdown 파일을 docs/로 이동 중인 변경
+- application.yaml 변경
+- .claude/ 미추적 파일
+이를 복구·삭제·덮어쓰기·stage·commit하지 않는다. 작업 전후 git status를 비교하고 새 문서 외의 파일을 변경하지 않는다.
+1단계: 현재 구조 인벤토리
+다음 범위를 확인한다.
+- build.gradle.kts
+- docker-compose.yml
+- src/main/resources/application.yaml
+- src/main/java
+- src/test/java
+- src/test/resources
+- docs
+rg --files로 전체 파일을 파악한 뒤, 파일명만으로 책임을 판단하지 말고 실제 메서드 호출을 추적한다.
+다음을 정리한다.
+- Java/Spring/DB/보안/크롤링/AI 연동 기술
+- Frontend, Spring backend, 대상 웹사이트, AI server, DB의 책임 경계
+- 실제 코드에서 사용되는 인프라와 설정 파일에만 존재하는 인프라
+- 외부 서비스나 로컬 환경이 필요한 부분
+docker-compose.yml에 서비스가 있다는 이유만으로 해당 기술이 구현됐다고 쓰지 않는다. Gradle 의존성, 설정 소비 코드, 실제 호출 코드까지 확인한다.
+2단계: 현재 런타임 흐름 추적
+다음 vertical flow를 controller부터 저장까지 추적한다.
+인증
+→ POST /api/v1/geo/order
+→ Order 저장
+→ AnalysisJob 생성
+→ 실제 실행 방식 확인
+→ URL 수집
+→ 본문·JSON-LD 추출과 포맷
+→ AI 서버 요청 생성
+→ POST /evaluate
+→ 응답·오류 분기
+→ AnalysisReport 저장
+→ 목록·상세·삭제 API
+반드시 확인할 파일:
+- GeoController
+- OrderService
+- AnalysisJobService
+- GeoAsyncWorker
+- GeoScrapingService
+- GeoAiService
+- AnalysisExecutionService
+- AnalysisReportService
+- 관련 DTO, entity, repository, security 클래스
+문서에는 하나의 Mermaid sequence diagram을 사용하되 다음을 분리해서 표현한다.
+- 주문 API에서 직접 호출되는 실제 경로
+- scheduler가 처리하는 queue 경로
+- 성공, 재시도, 최종 실패 상태
+- 보고서 조회 경로
+클래스명이 AsyncWorker라는 이유만으로 API가 비동기라고 쓰지 않는다. 호출자를 기준으로 판정한다.
+추가로 다음 흐름을 짧게 정리한다.
+- JWT 회원가입·로그인
+- Google OAuth2 로그인
+- 프로필·비밀번호 변경
+- 보고서 목록·상세·soft delete
+- AI 서버 요청 및 오류 매핑
+3단계: 도메인 책임과 상태 모델 확인
+다음 aggregate의 책임과 관계를 표로 만든다.
+- Client
+- Order
+- AnalysisJob
+- AnalysisReport
+각 항목에는 다음을 포함한다.
+- 생성 주체
+- 핵심 데이터
+- 연관관계와 PK/FK
+- 상태 enum
+- 상태 변경 메서드
+- API에 노출되는 상태
+- 현재 호출되지 않는 필드나 메서드
+- 책임이 중복되거나 불명확한 부분
+특히 다음을 구분한다.
+- Order: 고객이 제출한 분석 입력
+- AnalysisJob: 실행·재시도·실패 상태
+- AnalysisReport: 생성된 결과물과 삭제·만료 수명주기
+과거 설계가 현재 코드에서 폐기됐다면 현재 구조를 본문에 쓰고, 과거 구조는 “설계 전환”에서만 설명한다.
+4단계: API와 외부 계약 확인
+현재 controller와 DTO에서 API 표를 직접 작성한다.
+표 항목:
+- HTTP method와 path
+- 인증 필요 여부
+- request DTO
+- response DTO
+- 소유권 검증 여부
+- 상태 변화
+- 외부 의존성
+- 확인된 예외 또는 제약
+AI 서버 계약은 C:\Users\user\Documents\GitHub\ai-server의 현재 실제 진입점도 대조한다.
+확인할 내용:
+- /evaluate 요청 필드
+- url, domain, html_text, json_ld의 타입과 의미
+- 라벨형 html_text 구조
+- 지원 domain
+- success, warning, insufficient content, parse error, HTTP error 분기
+- JSON-LD 배열 처리
+- Spring과 Python 추출기의 동일성을 어디까지 검증할 수 있는지
+byte 단위 추출 동일성을 근거 없이 주장하지 않는다. fixture에서 확인한 구조 계약과 핵심 정보 보존만 기술한다.
+5단계: 테스트와 실행 근거 수집
+먼저 테스트를 다음처럼 분류한다.
+- 순수 unit test
+- 저장 fixture 기반 contract test
+- Spring context/DB 필요 테스트
+- 실제 웹사이트 호출 테스트
+- 실제 AI 서버 필요 테스트
+실제 DB를 변경하거나 실사이트를 호출할 수 있는 테스트는 자동 실행하지 않는다. 특히 rollback이 비활성화된 DB 테스트는 명시적 허가 없이 실행하지 않는다.
+안전한 범위에서 다음을 검증한다.
+.\gradlew.bat compileJava compileTestJava --no-daemon --console=plain
+그다음 fixture·mock 기반 테스트를 선별 실행한다.
+실패한 경우 다음을 분리해 기록한다.
+- 컴파일 실패
+- 테스트 assertion 실패
+- Spring context 실패
+- DB 연결 실패
+- 외부 네트워크 실패
+- AI 서버 미가동
+- 환경 또는 Gradle 다운로드 문제
+실행하지 않은 항목은 TEST_VERIFIED로 표시하지 않는다.
+6단계: Git 기반 구현 연혁 작성
+연혁은 반드시 develop에 도달 가능한 commit만 기준으로 삼는다.
+git log --all은 stash, 독립 notes ref, dangling/WIP 기록이 섞일 수 있으므로 본선 연혁의 기준으로 사용하지 않는다.
+사용할 조사 방식:
+git log develop --reverse --date=short --format="%h`t%ad`t%s"
+git log develop --first-parent --graph --oneline
+git show --stat <commit>
+git show <commit> -- <relevant-path>
+git log --follow --find-renames -- <current-file>
+필요하면 git log -S 또는 git log -G로 상태 필드·API·의존성 도입 시점을 확인한다.
+커밋 제목만으로 의도를 확정하지 않는다. 실제 diff와 변경 파일을 확인한다. package 이동이나 rename을 기능 삭제로 오해하지 않는다.
+다음 milestone을 후보로 사용하되, 새 세션에서 commit diff로 다시 검증한다.
+1. Spring/Gradle 프로젝트 초기화
+2. JPA 도메인, JWT/Security, AI 호출·스크래핑 기반
+3. 최초 주문 → 분석 → 결과 저장 vertical slice
+4. OAuth와 frontend 연동, CORS, Playwright, API 계약 확장
+5. DB 기반 AnalysisJob queue와 재시도 상태
+6. 계정·프로필과 report lifecycle
+7. Order·AnalysisJob·AnalysisReport 책임 재조정
+8. AI 4필드 입력 계약, fixture, 응답·오류 처리 정합화
+각 milestone 표에는 다음을 적는다.
+- 기간
+- 대표 commit hash
+- 변경 의도
+- 실제 변경 파일
+- 현재 코드에 남아 있는 구조
+- 나중에 대체되거나 폐기된 구조
+- 근거 상태
+모든 commit을 나열하는 changelog는 만들지 않는다.
+7단계: 기존 문서와 현재 코드 대조
+다음 문서를 현재 코드와 대조하여 “문서 지도” 표를 만든다.
+- docs/AI_SERVER_INPUT_CONTRACT_IMPLEMENTATION_PLAN.md
+- docs/Front-Back_Link_Guide.md
+- docs/Swagger AI 서버 테스트 방법.md
+각 문서를 다음 중 하나로 분류한다.
+- 현재 기준으로 사용 가능
+- 일부만 유효
+- 역사적 계획
+- STALE
+- 확인 불가
+계획 문서의 checklist가 미완료라고 해서 실제 구현도 미완료라고 단정하지 않는다. 해당 계획 이후의 commit과 현재 테스트를 확인한다.
+기존 문서 내용을 새 문서에 그대로 복제하지 말고 역할, 신뢰 상태, 주의점, 링크만 제공한다.
+8단계: 현재 불일치와 위험 검증
+다음은 현재 snapshot에서 발견된 출발 가설이다. 문서에 쓰기 전에 반드시 재검증한다.
+- 주문 API가 job을 생성한 뒤 동기 worker 경로를 호출하는지
+- scheduler 경로에서 jobId와 orderId가 혼용되는지
+- 동기 처리와 polling scheduler가 같은 job을 중복 처리할 가능성이 있는지
+- report 삭제에 소유권 검증이 있는지
+- TECHBLOG 주문은 저장되지만 AI 요청 직전에 거부되는지
+- processedResult와 report 만료 로직의 호출 경로가 존재하는지
+- SSRF 방어가 구현됐는지
+- Compose 설정과 실제 Spring 설정이 일치하는지
+- Redis, Kafka, OpenSearch가 실제 코드에서 사용되는지
+- 기존 AI 입력 계약 계획이 후속 commit으로 구현됐는데도 “구현 전” 상태로 남았는지
+- 설정 파일에 민감값이 포함돼 있는지
+확인된 문제를 이번 작업에서 수정하지 않는다. MISMATCH, REMAINING, UNKNOWN으로 분리하여 문서화한다. 민감값은 절대 출력하지 않는다.
+9단계: 최종 문서 작성
+docs/BACKEND_IMPLEMENTATION_FLOW.md를 다음 구조로 작성한다.
+1. 문서 목적과 읽는 방법
+2. Last verified snapshot
+3. 상태 라벨 범례
+4. 1분 프로젝트 요약
+5. 시스템 경계와 backend 책임
+6. 현재 end-to-end 요청 처리 흐름
+7. 도메인 관계와 상태 lifecycle
+8. API·인증·소유권 표
+9. 스크래핑 및 AI 서버 계약
+10. DB 저장 구조와 report lifecycle
+11. Git milestone 기반 구현 연혁
+12. 주요 설계 전환과 폐기된 구조
+13. 현재 구현 / 불일치 / 남은 작업 / 미확정 사항
+14. 테스트 분류와 검증 결과
+15. 기존 문서 지도와 신뢰 상태
+16. 새 agent가 먼저 읽을 파일 순서
+17. 새 세션에서 문서를 갱신하는 방법
+상단의 “1분 프로젝트 요약”만 읽어도 다음을 파악할 수 있어야 한다.
+- 이 backend의 책임
+- 핵심 요청 흐름
+- 외부 시스템
+- 핵심 aggregate
+- 현재 동기·비동기 처리 방식
+- 가장 중요한 미확정 사항
+코드 설명에는 상대 경로와 클래스::메서드를 근거로 붙인다. 역사적 설명에는 commit hash를 붙인다. 변하기 쉬운 줄 번호는 보조 정보로만 사용한다.
+긴 코드 블록이나 전체 commit 목록은 넣지 않는다.
+10단계: 문서 검증
+완료 전에 다음을 확인한다.
+- 새 문서에서 언급한 파일 경로가 실제로 존재한다.
+- 모든 현재 구조 주장에 코드 또는 테스트 근거가 있다.
+- 모든 역사 주장에 commit hash와 실제 diff 근거가 있다.
+- 현재 구현과 설계 목표가 섞이지 않았다.
+- 테스트 실행 결과와 미실행 항목이 구분돼 있다.
+- 민감한 URL, token, password, client secret이 포함되지 않았다.
+- Markdown 표와 Mermaid 문법이 GitHub에서 읽을 수 있다.
+- 작업 전후 git status를 비교했을 때 기존 사용자 변경이 보존됐다.
+- 이번 작업이 새 문서 외의 파일을 변경하지 않았다.
+- git diff --check 결과를 확인했다.
+현재 불일치·남은 작업은 현 상태만 유지한다. 이후 해결된 항목은 남은 작업에서 제거하고 현재 흐름 또는 관련 milestone에 반영한다. 완료 기록을 계속 누적하는 로그로 만들지 않는다.
+완료 보고 형식
+작업 완료 후 다음만 간결하게 보고한다.
+- 생성한 문서의 절대 경로
+- 검증 기준 branch와 HEAD
+- 실행한 빌드·테스트와 결과
+- 확인됐지만 수정하지 않은 핵심 불일치
+- 사용한 외부 참고 자료와 사용하지 않은 자료
+- 기존 작업 트리 변경을 보존했는지 여부
