@@ -1,3 +1,55 @@
 spring:
+  config:
+    import: "optional:file:.env[.properties]"
   application:
     name: saas
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+    hibernate:
+      ddl-auto: update #주의) 개발 단계에서만 update 할것!!
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        default_schema: public
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            redirect-uri: ${GOOGLE_REDIRECT_URI:${APP_BASE_URL}/login/oauth2/code/google}
+            scope:
+              - profile
+              - email
+app:
+  frontend-base-url: ${FRONTEND_BASE_URL}
+jwt:
+  secret: ${JWT_SECRET}
+  token-validity-in-seconds: 86400 #유효기간 하루
+logging:
+  level:
+    org.springframework.security: DEBUG
+    io.jsonwebtoken: DEBUG
+geo:
+  scraping:
+    jsoup-timeout-ms: 7000
+    playwright-timeout-ms: 15000
+    playwright-render-delay-ms: 1000
+    playwright-enabled: true
+server:
+  forward-headers-strategy: framework
+  servlet:
+    encoding:
+      charset: UTF-8
+      force: true
+      force-response: true
+ai:
+  server:
+    base-url: ${AI_SERVER_BASE_URL}
