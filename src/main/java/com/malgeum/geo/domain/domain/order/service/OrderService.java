@@ -66,6 +66,9 @@ public class OrderService {
                 .orElseThrow(() -> new DataNotFoundException("Order not found. id=" + orderId));
     }
 
+    //TODO: 이전에 입력한적 있는 Url인 경우에 해당 주문과 매핑할지 말지 묻기?
+    //새 분석으로 완전 덮어쓰기 vs 이전 분석은 남기고 새 분석하기
+
     public Order createOrder(Client client, GeoOrderRequest orderRequest) {
         return Order.builder()
                 .client(client)
