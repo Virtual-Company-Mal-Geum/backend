@@ -44,7 +44,8 @@ application.yaml
 src/main/resources/application.yaml
 /.env
 
-graphify-out
+graphify-out/
+graphify-out/graph.json
 
 .claude
 .codex
