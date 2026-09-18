@@ -33,15 +33,14 @@ public class GeoAsyncWorker {
 
     // TODO: 재분석 프로세스를 3번 다 해보고나서야 다음꺼로 넘어갈까? || A프로세스 분석 -> B -> C -> A 식으로 순차적이게
     // 할까?
-    @SuppressWarnings("null")
-    @Scheduled(fixedDelayString = "${analysis.job.poll-delay-ms:1000}")
-    public void pollAndProcess() {
+    @Scheduled(fixedDelayString = "${analysis.job.poll-delay-ms:1000}") //1초마다 큐를 폴링하여 분석 작업을 처리한다. 스케줄링 돼있기에 내부 메서드를 포함하여 직접 호출은 지양할것
+    void pollAndProcess() {
         while (processNextJob()) {
             // 큐에 대기 중인 작업이 있는 동안 1건씩 순차 처리
         }
     }
 
-    private boolean processNextJob() {
+    boolean processNextJob() {
         Optional<ClaimedJob> claimedJobOpt = analysisJobService.claimNextJob();
         if (claimedJobOpt.isEmpty()) {
             return false;
@@ -55,28 +54,29 @@ public class GeoAsyncWorker {
 
         try {
             processClaimedOrder(orderId);
-            analysisJobService.markSucceeded(jobId);
+            analysisJobService.markSucceeded(orderId);
             log.info("[AsyncWorker] 작업 처리 성공 - jobId: {}, orderId: {}", jobId, orderId);
         } catch (Exception e) {
-            analysisJobService.markFailureOrRetry(jobId, e);
+            analysisJobService.markFailureOrRetry(orderId, e);
             log.error("[AsyncWorker] 작업 처리 실패 - jobId: {}, orderId: {}", jobId, orderId, e);
         }
         return true;
     }
 
-    public void processSynchronously(Long orderId) {
-        log.info("[AsyncWorker] 동기 분석 시작 - orderId: {}", orderId);
-        analysisJobService.markProcessing(orderId);
-        try {
-            processClaimedOrder(orderId);
-            analysisJobService.markSucceeded(orderId);
-            log.info("[AsyncWorker] 동기 분석 성공 - orderId: {}", orderId);
-        } catch (Exception e) {
-            analysisJobService.markFailureOrRetry(orderId, e);
-            log.error("[AsyncWorker] 동기 분석 실패 - orderId: {}", orderId, e);
-            throw e;
-        }
-    }
+    // 동기적으로 분석하는 메서드. (실시간 분석 요청 시 사용) - 테스트 용도이고, 실제로는 pollAndProcess()로 비동기 처리된다.
+//    public void processSynchronously(Long orderId) {
+//        log.info("[AsyncWorker] 동기 분석 시작 - orderId: {}", orderId);
+//        analysisJobService.markProcessing(orderId);
+//        try {
+//            processClaimedOrder(orderId);
+//            analysisJobService.markSucceeded(orderId);
+//            log.info("[AsyncWorker] 동기 분석 성공 - orderId: {}", orderId);
+//        } catch (Exception e) {
+//            analysisJobService.markFailureOrRetry(orderId, e);
+//            log.error("[AsyncWorker] 동기 분석 실패 - orderId: {}", orderId, e);
+//            throw e;
+//        }
+//    }
 
     protected void processClaimedOrder(Long orderId) {
         AnalysisReportContext context = buildReportContext(orderId);

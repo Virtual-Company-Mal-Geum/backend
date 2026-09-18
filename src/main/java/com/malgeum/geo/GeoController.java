@@ -25,7 +25,6 @@ import com.malgeum.geo.domain.domain.order.dto.GeoOrderResponse;
 import com.malgeum.geo.domain.domain.order.service.OrderService;
 import com.malgeum.geo.dto.PasswordUpdateRequest;
 import com.malgeum.geo.service.AuthService;
-import com.malgeum.geo.service.GeoAsyncWorker;
 
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -37,7 +36,6 @@ public class GeoController {
     private final OrderService orderService;
     private final AnalysisReportService reportService;
     private final AuthService authService;
-    private final GeoAsyncWorker geoAsyncWorker;
     private final ClientService clientService;
 
     @GetMapping("/reports")
@@ -49,8 +47,7 @@ public class GeoController {
     @PostMapping("/order")
     public ResponseEntity<GeoOrderResponse> startAnalysis(@RequestBody GeoOrderRequest orderRequest) {
         Long orderId = orderService.acceptOrder(orderRequest);
-        geoAsyncWorker.processSynchronously(orderId);
-        return ResponseEntity.ok(new GeoOrderResponse("GEO 분석이 완료되었습니다.", orderId));
+        return ResponseEntity.ok(new GeoOrderResponse("GEO 분석 요청이 접수되었습니다.", orderId));
     }
 
     @GetMapping("/report/{orderId}")
