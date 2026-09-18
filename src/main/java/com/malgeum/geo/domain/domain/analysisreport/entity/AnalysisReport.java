@@ -27,7 +27,7 @@ import lombok.NoArgsConstructor;
 @Table(name = "analysis_report")
 @Getter
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
-public class AnalysisReport extends BaseTimeEntity {
+public class AnalysisReport extends BaseTimeEntity { //백엔드에서 AI분석 결과를 저장하는 엔티티. (분석결과 JSON, 분석결과 시각화 데이터 등)
     @Id
     private Long id;
 

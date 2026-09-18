@@ -26,7 +26,7 @@ import lombok.NoArgsConstructor;
 @Getter
 @Table(name = "client_order")
 @NoArgsConstructor(access = lombok.AccessLevel.PROTECTED)
-public class Order extends BaseTimeEntity {
+public class Order extends BaseTimeEntity { // 백엔드에서 처리하는 사용자의 주문 정보 DTO
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;

@@ -15,8 +15,8 @@ import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
-public class AnalysisExecutionService {
-    private final OrderRepository orderRepository;
+public class AnalysisExecutionService { //AnalysisJobService와 달리, 실제 분석을 수행하는 서비스. (AI 모델 호출, 결과 저장 등)
+    private final OrderRepository orderRepository; //orderRepository와 analysisReportRepository에 대한 의존성이 추가되기에 따로 독립시켜놓음.
     private final AnalysisReportRepository analysisReportRepository;
 
     @Transactional

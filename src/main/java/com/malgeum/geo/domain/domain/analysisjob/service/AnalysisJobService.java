@@ -13,7 +13,7 @@ import com.malgeum.geo.global.common.DataNotFoundException;
 
 @Service
 @lombok.RequiredArgsConstructor
-public class AnalysisJobService {
+public class AnalysisJobService { //AnalysisJobService는 AnalysisJob 엔티티 상태를 관리하는 서비스. (분석 작업 큐 관리, 상태 업데이트 등)
     private final AnalysisJobRepository analysisJobRepository;
 
     @Transactional

@@ -5,7 +5,7 @@ import java.util.List;
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.global.common.DataNotFoundException;
 
-public record GeoOrderRequest(
+public record GeoOrderRequest( // 사용자가 GEO 분석을 요청할 때 브라우저에서 보내는 요청 DTO
         String targetUrl,
         String siteName,
         String serviceType,

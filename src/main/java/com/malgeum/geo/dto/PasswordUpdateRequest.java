@@ -4,7 +4,7 @@ import jakarta.validation.constraints.AssertTrue;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
-public record PasswordUpdateRequest(
+public record PasswordUpdateRequest( //사용자가 브라우저에서 비밀번호를 변경할 때 사용하는 DTO
 		@NotBlank(message = "기존 비밀번호는 필수항목입니다.") String originPassword,
 
 		@NotBlank(message = "새 비밀번호는 필수항목입니다.") @Size(min = 8, max = 64, message = "새 비밀번호는 8자 이상이어야 합니다.") String newPassword,
