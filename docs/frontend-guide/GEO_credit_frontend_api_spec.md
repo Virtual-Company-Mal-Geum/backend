@@ -1,12 +1,12 @@
 # GEO 상품·결제 프론트엔드 API 명세서
 
-- 버전: 2.0
-- 작성일: 2026-09-14
+- 버전: 2.1
+- 작성일: 2026-09-18
 - 대상: GEO 서비스 프론트엔드·백엔드 개발자
 - Base URL: `/api/v1`
 - 인증 방식: JWT Bearer
-- 정책 원본: `PRICING_MODEL.md` 2026-09-14 개정본
-- 지원 결제: Remediation Pack은 토스 카드·카카오페이, Partner는 세금계산서 + 수동 계좌이체
+- 정책 원본: `PRICING_MODEL.md` 2026-09-16 개정본
+- 지원 결제: Remediation Pack은 토스페이먼츠 일반 신용·체크카드 및 간편결제, Partner는 세금계산서 + 수동 계좌이체
 
 ## 1. 문서 범위와 구현 단계
 
@@ -18,7 +18,7 @@
 | --- | --- | --- | --- |
 | 1 | 무료 Scan | 확정 | 현재 `/evaluate` 기반으로 연결 |
 | 1 | Remediation Pack 구매·크레딧·작업·환불 | 확정 | 우선 구현 |
-| 1 | 토스 카드·카카오페이 결제 | 확정 | 우선 구현 |
+| 1 | 토스페이먼츠 일반 카드·간편결제 | 확정 | 우선 구현 |
 | 2 | Partner 플랜·세금계산서·계좌이체 | 초안 | API 계획만 남기고 이번 프로젝트에서는 구현하지 않음 |
 | 별도 | AI 검색 인용·언급 추적 agent | 미정 | 가격·API를 만들지 않음 |
 
@@ -155,8 +155,6 @@ Idempotency-Key: <UUID v4>
 | `POST /evaluate` | Scan 제출 |
 | `POST /purchase-orders` | Pack 구매 클릭 |
 | `POST /payments/confirm` | 토스 successUrl 진입 |
-| `POST /payments/kakaopay/ready` | 카카오페이 결제창 열기 |
-| `POST /payments/kakaopay/approve` | 카카오페이 successUrl 진입 |
 | `POST /remediations` | 개선 작업 제출 |
 | `POST /remediations/{id}/verifications` | 재검증 요청 |
 | `POST /payments/{id}/refunds` | Pack 환불 확인 |
@@ -288,9 +286,7 @@ Idempotency-Key: <UUID v4>
 | 구현 | POST | `/purchase-orders` | 회원 | Pack 구매 주문 생성 |
 | 구현 | GET | `/purchase-orders/{orderId}` | 소유자 | 주문·결제 상태 조회 |
 | 구현 | GET | `/purchase-orders` | 회원 | Pack 구매 내역 |
-| 구현 | POST | `/payments/confirm` | 소유자 | 토스 카드 승인 |
-| 구현 | POST | `/payments/kakaopay/ready` | 소유자 | 카카오페이 결제 준비 |
-| 구현 | POST | `/payments/kakaopay/approve` | 소유자 | 카카오페이 승인 |
+| 구현 | POST | `/payments/confirm` | 소유자 | 토스페이먼츠 카드·간편결제 승인 |
 | 구현 | GET | `/pack-credits/balance` | 회원 | Pack 크레딧 잔액 |
 | 구현 | GET | `/pack-credits/batches` | 회원 | 구매별 잔여량·만료일 |
 | 구현 | GET | `/pack-credits/ledger` | 회원 | 크레딧 변경 이력 |
@@ -467,8 +463,8 @@ Content-Type: application/json
 
 | 값 | provider | 허용 상품 |
 | --- | --- | --- |
-| `CARD` | `TOSS` | Remediation Pack |
-| `KAKAOPAY` | `KAKAOPAY` | Remediation Pack |
+| `CARD` | `TOSS` | Remediation Pack 일반 신용·체크카드 |
+| `EASY_PAY` | `TOSS` | Remediation Pack 간편결제 |
 | `BANK_TRANSFER` | `MANUAL_BANK` | Partner 청구서만 허용. 이 API에서는 거부 |
 
 토스 주문 성공 `201 Created`:
@@ -492,20 +488,11 @@ Content-Type: application/json
   },
   "paymentMode": "TEST",
   "expiresAt": "2026-09-14T06:30:00Z",
-  "policyVersion": "pricing-2026-09-14"
+  "policyVersion": "pricing-2026-09-16"
 }
 ```
 
-카카오페이 주문의 `checkout`은 다음 형태다.
-
-```json
-{
-  "type": "KAKAOPAY_REDIRECT",
-  "readyRequired": true
-}
-```
-
-프론트는 `paymentMethod`와 `paymentProvider`를 판별자로 사용한다. 결제수단을 바꾸려면 기존 주문을 재사용하지 않고 새 주문을 만든다.
+`CARD`와 `EASY_PAY` 모두 `paymentProvider=TOSS`, `checkout.type=TOSS_WIDGET`을 사용한다. `CARD`는 일반 신용카드와 체크카드를 함께 포함하며 프론트가 카드 종류별 API를 분리하지 않는다. 프론트는 `paymentMethod`를 위젯의 초기 결제수단에 반영하고, 결제수단을 바꾸려면 기존 주문을 재사용하지 않고 새 주문을 만든다.
 
 ### GET `/purchase-orders/{orderId}`
 
@@ -557,15 +544,14 @@ Authorization: Bearer <accessToken>
 | `TOSS_CLIENT_KEY` | 토스 SDK 초기화 |
 | `TOSS_SUCCESS_URL` | 토스 인증 성공 화면 |
 | `TOSS_FAIL_URL` | 토스 실패·취소 화면 |
-| `KAKAOPAY_SUCCESS_URL` | 카카오페이 인증 성공 화면 |
-| `KAKAOPAY_CANCEL_URL` | 카카오페이 사용자 취소 화면 |
-| `KAKAOPAY_FAIL_URL` | 카카오페이 실패 화면 |
 
-토스 시크릿 키와 카카오페이 Secret key·CID·`tid`는 프론트에 포함하지 않는다.
+토스 시크릿 키는 프론트에 포함하지 않는다.
 
-### 9.2 토스 카드
+### 9.2 토스페이먼츠 카드·간편결제
 
-SDK에는 서버 주문의 `orderId`, `orderName`, `totalAmount`, `currency`, `checkout.customerKey`를 전달한다. 결제 인증 성공 후 다음 API를 호출한다.
+토스페이먼츠 한 곳에서 `CARD`와 `EASY_PAY`를 처리한다. `CARD`는 일반 신용카드·체크카드를 포함하며, `EASY_PAY`는 토스 결제위젯에서 제공하는 간편결제다. 별도 간편결제사 직접 연동 API는 두지 않는다.
+
+SDK에는 서버 주문의 `orderId`, `orderName`, `totalAmount`, `currency`, `checkout.customerKey`를 전달한다. 어떤 수단을 선택하더라도 결제 인증 성공 후 다음 승인 API를 호출한다.
 
 #### POST `/payments/confirm`
 
@@ -584,55 +570,7 @@ Content-Type: application/json
 
 `amount`는 공급가액 49,000원이 아니라 VAT 포함 `totalAmount=53,900`원이다.
 
-### 9.3 카카오페이
-
-#### POST `/payments/kakaopay/ready`
-
-```http
-POST /api/v1/payments/kakaopay/ready
-Authorization: Bearer <accessToken>
-Idempotency-Key: 6d26af3b-3234-4100-924c-1e3159d9a8c3
-Content-Type: application/json
-
-{
-  "orderId": "po_b7845e83-12f1-44a6-ad84-1d47d39fc743",
-  "clientType": "WEB_PC"
-}
-```
-
-`clientType`은 `WEB_PC`, `WEB_MOBILE`, `APP` 중 하나다. `APP`은 앱 스킴이 준비된 경우만 사용한다.
-
-성공 `200 OK`:
-
-```json
-{
-  "orderId": "po_b7845e83-12f1-44a6-ad84-1d47d39fc743",
-  "paymentId": "pay_539640c1",
-  "paymentStatus": "READY",
-  "redirectUrl": "https://online-pay.kakao.com/...",
-  "expiresAt": "2026-09-14T06:30:00Z"
-}
-```
-
-프론트는 URL을 수정하지 않고 같은 탭에서 `window.location.assign(redirectUrl)`로 이동한다.
-
-#### POST `/payments/kakaopay/approve`
-
-```http
-POST /api/v1/payments/kakaopay/approve
-Authorization: Bearer <accessToken>
-Idempotency-Key: 45fc52ee-1062-4a35-ad22-1bac6efe092d
-Content-Type: application/json
-
-{
-  "orderId": "po_b7845e83-12f1-44a6-ad84-1d47d39fc743",
-  "pgToken": "<successUrl의 pg_token>"
-}
-```
-
-프론트는 `tid`, CID, 금액, 회원 ID를 보내지 않는다. 백엔드는 준비 기록과 주문으로 복원한다.
-
-### 9.4 공통 승인 응답
+### 9.3 공통 승인 응답
 
 완료 `200 OK`:
 
@@ -804,7 +742,7 @@ Content-Type: application/json
 
 ## 12. Pack 전액 환불
 
-카드·카카오페이 Pack 구매 중 해당 결제로 받은 크레딧을 하나도 예약·사용·만료하지 않은 경우만 원 결제수단으로 전액 환불한다. 일부 사용 묶음의 잔여 크레딧 부분 환불은 제공하지 않는다.
+토스페이먼츠 카드·간편결제 Pack 구매 중 해당 결제로 받은 크레딧을 하나도 예약·사용·만료하지 않은 경우만 원 결제수단으로 전액 환불한다. 일부 사용 묶음의 잔여 크레딧 부분 환불은 제공하지 않는다.
 
 Partner 계좌이체의 해지·과오납 반환은 이 API를 사용하지 않고 운영 정산으로 처리한다.
 
@@ -1047,7 +985,7 @@ Content-Type: application/json
 | 409 | `VERIFICATION_WINDOW_EXPIRED` | 30일 기한 만료 안내 |
 | 409 | `CREDITS_IN_USE` | 진행 중 작업 완료·취소 후 환불 안내 |
 | 409 | `CREDITS_ALREADY_USED` | 자동 전액 환불 불가 안내 |
-| 409 | `BANK_TRANSFER_NOT_ALLOWED_FOR_PACK` | 카드 또는 카카오페이 선택 안내 |
+| 409 | `BANK_TRANSFER_NOT_ALLOWED_FOR_PACK` | 카드 또는 간편결제 선택 안내 |
 | 409 | `DEPOSIT_ALREADY_REPORTED` | 청구서 상태 조회 |
 | 422 | `PAYMENT_DECLINED` | 결제수단 확인 후 새 주문 안내 |
 | 422 | `UNSUPPORTED_DOMAIN` | 교육·이커머스·뉴스만 표시 |
@@ -1061,8 +999,7 @@ Content-Type: application/json
 ```typescript
 type PendingPackPurchase = {
   orderId: string;
-  paymentMethod: "CARD" | "KAKAOPAY";
-  readyIdempotencyKey?: string;
+  paymentMethod: "CARD" | "EASY_PAY";
   confirmIdempotencyKey?: string;
   createdAt: string;
 };
@@ -1074,7 +1011,7 @@ type PendingBankTransfer = {
 };
 ```
 
-- access token, PG Secret, 카카오페이 `tid`, 계좌 인증정보를 저장하지 않는다.
+- access token, PG Secret, 계좌 인증정보를 저장하지 않는다.
 - 결제 승인·작업 접수·환불·입금 알림 요청 중에는 해당 버튼을 비활성화한다.
 - 버튼 비활성화는 UX 보호이며 서버 멱등성이 중복 방지의 최종 기준이다.
 - 결제 성공, Remediation 접수·실패, 환불 성공 뒤 Pack 잔액을 다시 조회한다.
@@ -1099,7 +1036,7 @@ Polling 종료 조건:
 - 무료 Scan에 교육·이커머스·뉴스만 허용하고 `TECH_BLOG`를 노출하지 않는다.
 - 교육 선택 시 소형·대형 학원 분류와 노이즈 필터 기본값을 적용한다.
 - Pack 1·5·20의 VAT 별도 가격과 VAT 포함 결제 합계를 서버 응답으로 표시한다.
-- `CARD`와 `KAKAOPAY`만 Pack 구매에 허용한다.
+- `CARD`와 `EASY_PAY`만 Pack 구매에 허용하고, 두 방식 모두 `TOSS` provider로 처리한다.
 - 결제 성공과 Pack 크레딧 지급이 모두 확인된 뒤 구매 완료를 표시한다.
 - Pack 5·20 크레딧 만료일을 지급일 + 12개월로 표시한다.
 - Remediation 1건에 Pack 크레딧 1개만 예약·사용한다.
@@ -1125,7 +1062,7 @@ Polling 종료 조건:
 | 재검증 실패 시 횟수 복원 | 미확정 |
 | 무료 Scan의 비회원 식별·월 한도 초기화 시각 | 기존 인증·남용 방지 정책과 합의 필요 |
 | 실제 `/evaluate` 조회 API | 현재 프로젝트 DTO 확인 필요 |
-| 토스·카카오페이 운영 키와 반환 URL | 환경별 설정 필요 |
+| 토스페이먼츠 운영 키와 반환 URL | 환경별 설정 필요 |
 | Partner 입금 계좌 | 법인·사업자 계좌 확정 필요 |
 | 세금계산서 발행 시스템 | 직접 처리 또는 외부 서비스 결정 필요 |
 | 입금 대사 | 관리자 수동 확인 또는 은행 거래 연동 결정 필요 |
@@ -1135,9 +1072,8 @@ Polling 종료 조건:
 
 ## 18. 참고
 
-- `PRICING_MODEL.md`, 2026-09-14: 상품 구조, 타깃, 가격, 구현 범위, 계좌이체 정책
+- `PRICING_MODEL.md`, 2026-09-16: 상품 구조, 타깃, 가격, 구현 범위, 결제·수납 정책
 - [토스페이먼츠 결제위젯 연동](https://docs.tosspayments.com/guides/v2/payment-widget/integration)
 - [토스페이먼츠 코어 API](https://docs.tosspayments.com/reference)
-- [카카오페이 온라인 단건 결제](https://developers.kakaopay.com/docs/payment/online/single-payment)
 
 이 문서의 Partner API는 향후 구현 방향을 고정하기 위한 초안이다. AI 검색 추적은 비용 구조와 제품 가치 검증이 끝난 뒤 별도 명세로 분리한다.
