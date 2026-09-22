@@ -82,7 +82,7 @@ public class Client extends BaseTimeEntity {
     }
 
     public enum ClientPlan {
-        FREE, BASIC, PRO, ENTERPRISE
+        FREE, FOUNDING_PARTNER, PARTNER, PARTNER_PLUS
     }
 
     public enum OAuthProvider {
@@ -103,15 +103,15 @@ public class Client extends BaseTimeEntity {
         this.plan = ClientPlan.FREE;
     }
 
-    public void updatePlanBasic() {
-        this.plan = ClientPlan.BASIC;
+    public void updatePlanFoundingPartner() {
+        this.plan = ClientPlan.FOUNDING_PARTNER;
     }
 
-    public void updatePlanPro() {
-        this.plan = ClientPlan.PRO;
+    public void updatePlanPartner() {
+        this.plan = ClientPlan.PARTNER;
     }
 
-    public void updatePlanEnterprise() {
-        this.plan = ClientPlan.ENTERPRISE;
+    public void updatePlanPartnerPlus() {
+        this.plan = ClientPlan.PARTNER_PLUS;
     }
 }
