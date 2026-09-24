@@ -1,4 +1,4 @@
-package com.malgeum.geo.domain.pricing;
+package com.malgeum.geo.domain.pricing.partnersubscription.entity;
 
 import com.malgeum.geo.domain.PricingModelTimeEntity;
 import com.malgeum.geo.domain.domain.client.entity.Client;

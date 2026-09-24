@@ -4,6 +4,7 @@
 - 작성일: 2026-09-18
 - 개정: 2026-09-24 — 별도 Remediation·Verification 리소스를 없애고 기존 분석 주문 API(`/geo/order`, `/geo/report`)로 통합. 로그인 회원의 무료 Scan도 같은 API로 통합
 - 개정: 2026-09-25 — 비로그인 방문자 Scan 제거. 모든 분석 주문은 로그인·계정 인증 필수
+- 변경 요약: [`GEO_credit_frontend_spec_changes_v2.3.md`](GEO_credit_frontend_spec_changes_v2.3.md) — v2.1 대비 달라진 API·필드·상태값·오류 코드와 프론트 작업 순서
 - 대상: GEO 서비스 프론트엔드·백엔드 개발자
 - Base URL: `/api/v1`
 - 인증 방식: JWT Bearer
