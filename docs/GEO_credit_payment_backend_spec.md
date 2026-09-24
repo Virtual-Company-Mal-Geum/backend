@@ -1,18 +1,21 @@
 # GEO 상품·결제·Pack 사용 백엔드 명세서
 
-- 버전: 2.0
+- 버전: 2.1
 - 작성일: 2026-09-15
+- 개정: 2026-09-25 — Remediation·Verification·FreeEvaluation을 기존 분석 주문(`client_order`)으로 통합, 비로그인 방문자 Scan 제거, 가입 남용 방지 추가. Pack 결제를 토스페이먼츠 카드·간편결제로 정리(카카오페이 직접 연동 제거, 프론트 명세 기준)
 - 대상: Mal-Geum GEO 서비스의 Spring Boot · Spring Security · JPA · PostgreSQL 백엔드
 - 정책 기준: `PRICING_MODEL.md` 2026-09-14 개정본
-- 프론트 계약: `GEO_credit_frontend_api_spec.md` v2.0
+- 프론트 계약: `GEO_credit_frontend_api_spec.md` v2.3, `GEO_verification_compare_frontend_spec.md` v2.0
 - 문서 성격: 구현용 설계 명세. 엔티티명은 제안이며 실제 코드·ERD와 병합 전 매핑 검토가 필요하다.
-- 이번 산출물: 무료 Scan, Remediation Pack 결제·사용·재검증·환불의 구현 계약과 Partner 세금계산서·계좌이체의 향후 계획
+- 이번 산출물: 무료 Scan, Remediation Pack 결제·사용·재평가·환불의 구현 계약과 Partner 세금계산서·계좌이체의 향후 계획
 
 ## 1. 결론과 구현 범위
 
 이번 프로젝트의 핵심 구현은 다음 흐름이다.
 
-> 무료 Scan → Remediation Pack 주문 → 토스 카드 또는 카카오페이 승인 → Pack 크레딧 지급 → Remediation 예약·수행 → 30일 내 재수집 검증 2회
+> 무료 Scan → Remediation Pack 주문 → 토스페이먼츠 카드 또는 간편결제 승인 → Pack 크레딧 지급 → 개선안 포함 주문 예약·수행 → 30일 내 재평가 2회
+
+모든 분석 주문은 로그인한 회원만 할 수 있다. 비로그인 방문자용 Scan은 제공하지 않는다. 회원별 주문 목록 조회와 스팸 주문 방지를 회원 단위로 처리하기 위해서다(§7.2).
 
 Partner는 관리 학원 수 기준 월 계약이며 세금계산서 + 수동 계좌이체를 사용한다. 기존 결정대로 Partner와 AI 검색 추적은 설계만 남기고 이번 프로젝트에서 직접 구현하지 않는다.
 
@@ -23,26 +26,28 @@ Partner는 관리 학원 수 기준 월 계약이며 세금계산서 + 수동 �
 | 확정 | 주 타깃은 소형·대형 학원과 교육 파트너 | 교육 입력을 소형·대형으로 구분 |
 | 확정 | 부 타깃은 이커머스·뉴스 | 같은 Pack 가격과 처리 계약 사용 |
 | 확정 | `TECH_BLOG` 제외 | API enum과 모델 라우팅에서 제거 |
-| 확정 | 무료 Scan: 비회원 1회, 회원 월 5회, 결과 30일 보관 | 유료 원장과 분리 |
+| 확정 | 무료 Scan: 회원 월 5회, 결과 30일 보관. 비로그인 이용 없음 | 유료 원장과 분리 |
 | 확정 | Pack 1/5/20 공급가액 14,900/49,000/149,000원, VAT 별도 | 결제는 16,390/53,900/163,900원 |
-| 확정 | Pack 크레딧 1개 = 페이지 1개의 전체 문제·위치별 diff·안전 검사 | 성공 시 1개 사용 확정 |
-| 확정 | 성공한 Remediation에 재수집 검증 2회 | 새 Pack 크레딧 차감 없음 |
+| 확정 | Pack 크레딧 1개 = 페이지 1개의 전체 문제·위치별 diff·안전 검사 | 성공 시 1개 사용 확정. MVP 성공 기준은 §8.3 |
+| 확정 | 성공한 개선안 포함 주문에 재평가 2회 | 새 Pack 크레딧 차감 없음 |
 | 확정 | Pack 5·20 크레딧 12개월 유효 | 지급 시 만료일 확정 |
-| 확정 | Pack 결제는 토스 카드·카카오페이 | 결제수단별 Controller·Adapter 분리 |
+| 확정 | Pack 결제는 토스페이먼츠 카드·간편결제(`CARD`·`EASY_PAY`) | 토스 한 곳, 승인 API 하나. 간편결제사 직접 연동 없음 |
 | 확정 | Partner는 Founding 29만원/10곳, Partner 49만원/20곳, Plus 99만원부터/50곳 | 월 공급가액, VAT 별도 |
 | 확정 | Partner 기본 결제는 세금계산서 + 수동 계좌이체 | PG Payment와 다른 Invoice 도메인 |
 | 확정 | AI 검색 추적은 별도 agent·서비스 | 이번 API·테이블에서 제외 |
-| 설계 선택 | 재검증 기한은 Remediation 성공 시각부터 30일 | 사용자의 임의 `appliedAt`으로 기한 연장 방지 |
+| 설계 선택 | 재평가 기한은 원 주문 완료 시각부터 30일 | 클라이언트가 보낸 값으로 기한을 정하지 않음 |
+| 설계 선택 | 무료 Scan·개선안 포함 주문·재평가를 모두 기존 분석 주문으로 표현 | 별도 Remediation·Verification·FreeEvaluation 테이블 없음 |
+| 설계 선택 | 이메일 인증 또는 Google OAuth 계정만 분석 주문 가능 | 스크립트로 계정을 여러 개 만드는 무료 한도 우회 방지 |
 | 설계 선택 | 미사용 Pack만 VAT 포함 결제액 전액 자동 환불 | 일부 사용 묶음은 운영 문의 |
 | 미확정 | Pack 1 미사용 크레딧 만료 | `expires_at=NULL` |
 | 미확정 | Pack 구매액의 Partner 첫 달 차감 조건 | 자동 계산·원장 구현 금지 |
-| 미확정 | 재검증 자체 장애 시 슬롯 복원 세부 기준 | 시스템 장애만 복원하는 기본안 사용 |
+| 미확정 | 재평가 실패 시 횟수 복원 세부 기준 | `FAILED` 재평가는 횟수에 넣지 않는 기본안 사용 |
 
 ### 1.2 단계별 범위
 
 | 단계 | 포함 | 제외 |
 | --- | --- | --- |
-| 프로젝트 핵심 | 상품, 주문, 토스·카카오페이 승인, Pack 원장, Remediation 예약·사용·반환 | Partner 테이블·API, AI 추적 |
+| 프로젝트 핵심 | 상품, 주문, 토스 카드·간편결제 승인, Pack 원장, 개선안 포함 주문의 크레딧 예약·사용·반환 | Partner 테이블·API, AI 추적 |
 | 실제 유료 공개 전 | PG Webhook·조회 대사, 장애 복구, 미사용 전액 환불, 운영 검토 | 부분 환불, 자동결제 |
 | 향후 계획 | Partner 신청·청구서·입금 확인·학원별 한도 | 빌링키, PG 자동 갱신 |
 
@@ -52,17 +57,14 @@ Partner는 관리 학원 수 기준 월 계약이며 세금계산서 + 수동 �
 
 | 용어 | 의미 |
 | --- | --- |
-| FreeEvaluation | 제한 결과를 제공하는 무료 Scan 작업 |
+| 분석 주문 | 기존 `client_order`(`Order`) + `analysis_job` + `analysis_report`. 무료 Scan·개선안 포함 주문·재평가를 모두 표현 |
 | PackProduct | 판매 중인 Remediation Pack 상품과 정책 버전 |
 | PurchaseOrder | Pack 한 묶음의 구매 주문·가격 스냅샷 |
-| Payment | 토스·카카오페이 승인 및 취소 상태 |
+| Payment | 토스페이먼츠 승인 및 취소 상태 |
 | PackCreditBatch | Payment 한 건으로 지급된 Pack 크레딧 묶음 |
 | PackCreditWallet | 회원별 잠금·이용 제한 기준 행 |
-| PackCreditReservation | Remediation 한 건에 예약한 크레딧 1개 |
+| PackCreditReservation | 개선안 포함 주문 한 건에 예약한 크레딧 1개 |
 | PackCreditLedger | 지급·예약·사용·반환·환불·만료 불변 이력 |
-| RemediationRequest | 한 페이지의 진단·위치별 diff·안전 검사를 생성하는 비동기 작업 |
-| VerificationSlot | 성공한 Remediation에 지급되는 재수집 검증 권리 2개 |
-| VerificationRequest | 사이트 적용 후 재수집·비교하는 비동기 작업 |
 | Refund | 미사용 Pack 결제를 원 결제수단으로 전액 취소하는 작업 |
 | PartnerApplication | Partner 계약 신청 — 계획 |
 | BillingInvoice | Partner 월 공급가액·VAT·입금 계좌·납기 상태 — 계획 |
@@ -70,7 +72,15 @@ Partner는 관리 학원 수 기준 월 계약이며 세금계산서 + 수동 �
 | PartnerSubscription | 입금 확인 뒤 활성화되는 학원 수 기준 월 권한 — 계획 |
 | Reconciliation | PG·은행의 실제 거래와 내부 상태를 대조하는 복구 작업 |
 
-기존 `AnalysisRequest`와 `AnalysisReport`가 이미 있다면 새 테이블을 무조건 복제하지 않는다. 기존 분석 주문을 `RemediationRequest` 역할로 확장할 수 있다. 단, 결제 주문과 분석 주문은 같은 엔티티로 합치지 않는다.
+별도 Remediation·Verification·FreeEvaluation 테이블을 만들지 않는다. 기존 분석 주문에 컬럼 두 개를 추가해 주문 종류를 구분한다.
+
+| 주문 종류 | `with_improvement` | `baseline_order_id` | 크레딧 | AI 호출 |
+| --- | --- | --- | --- | --- |
+| 무료 Scan | `false` | `NULL` | 없음 | `/evaluate` |
+| 개선안 포함 주문 | `true` | `NULL` | 1개 예약 | `/diagnose` |
+| 재평가 | `false` | 원 주문 id | 없음 | `/evaluate` |
+
+결제 주문(`PurchaseOrder`)과 분석 주문은 같은 엔티티로 합치지 않는다.
 
 ## 3. 타깃·도메인 계약
 
@@ -138,11 +148,15 @@ CHECK (
 
 | paymentMethod | provider | 허용 대상 | 비고 |
 | --- | --- | --- | --- |
-| `CARD` | `TOSS` | Pack | 토스 주문서형 결제의 카드 전용 variant 사용 |
-| `KAKAOPAY` | `KAKAOPAY` | Pack | 서버 준비 후 redirect, `pg_token` 승인 |
+| `CARD` | `TOSS` | Pack | 일반 신용·체크카드. 토스 결제위젯 |
+| `EASY_PAY` | `TOSS` | Pack | 토스 결제위젯이 제공하는 간편결제(토스페이·카카오페이 등) |
 | `BANK_TRANSFER` | `MANUAL_BANK` | Partner Invoice | PG 실시간 계좌이체·가상계좌가 아님 |
 
-토스 주문서형 결제는 기술적으로 다른 결제수단도 표시할 수 있지만, `CARD` 주문에서 승인 결과의 실제 method가 허용 목록과 다르면 자동 지급하지 않는다. Partner 수동 계좌이체를 토스 `계좌이체`나 `WAITING_FOR_DEPOSIT` 상태로 구현하지 않는다.
+- `CARD`와 `EASY_PAY`는 같은 토스 결제위젯·같은 승인 API(`POST /payments/confirm`)를 쓴다. 간편결제사별 직접 연동이나 별도 준비·승인 API는 두지 않는다.
+- 토스 결제위젯에는 카드와 간편결제만 노출한다.
+- 승인 결과의 실제 method가 `카드` 또는 `간편결제`이면 주문의 `paymentMethod`와 달라도 금액 검증 후 지급하고, 실제 method를 Payment에 기록한다. 결제수단은 가격에 영향을 주지 않는다.
+- 그 외 method(`가상계좌`, `계좌이체`, `휴대폰` 등)는 자동 지급하지 않고 검토 대상으로 둔다.
+- Partner 수동 계좌이체를 토스 `계좌이체`나 `WAITING_FOR_DEPOSIT` 상태로 구현하지 않는다.
 
 ### 4.3 주문 식별자와 만료
 
@@ -163,18 +177,9 @@ sequenceDiagram
     participant P as 결제사
     F->>B: Pack 주문 생성
     B->>D: 주문·Payment READY
-    alt 토스 카드
-        B-->>F: 주문값·customerKey
-        F->>P: 위젯 인증
-        F->>B: paymentKey·orderId·totalAmount
-    else 카카오페이
-        F->>B: ready 요청
-        B->>P: 결제 준비
-        P-->>B: tid·redirect URL
-        B-->>F: redirectUrl
-        F->>P: 카카오페이 인증
-        F->>B: orderId·pg_token
-    end
+    B-->>F: 주문값·customerKey
+    F->>P: 토스 결제위젯 인증(카드 또는 간편결제)
+    F->>B: paymentKey·orderId·totalAmount
     B->>P: 서버 승인
     B->>D: SUCCEEDED·Batch·PURCHASE 원장
     B-->>F: 지급 완료 또는 확인 중
@@ -198,39 +203,15 @@ PG 호출과 DB 커밋은 하나의 원자적 트랜잭션이 아니다. 승인 
 
 외부 호출 timeout·5xx·연결 종료는 확정 실패가 아니다. Payment를 `UNKNOWN`으로 두고 조회 대사를 예약한다. 사용자에게 새 주문을 즉시 만들도록 유도하지 않는다.
 
-### 5.2 토스 카드
+### 5.2 토스 카드·간편결제
 
-1. 프론트가 주문의 `totalAmount`, `orderId`, `customerKey`로 주문서형 결제를 연다.
+1. 프론트가 주문의 `totalAmount`, `orderId`, `customerKey`로 토스 결제위젯을 연다. `paymentMethod`는 위젯의 초기 선택값으로만 쓴다.
 2. `successUrl`의 `paymentKey`, `orderId`, `amount`를 `POST /payments/confirm`으로 전달한다.
 3. 서버는 body 금액을 주문 총액과 비교한 뒤 토스 승인 API를 호출한다.
-4. 응답의 `paymentKey`, `orderId`, `totalAmount`, `currency`, 실제 method를 재검증한다.
+4. 응답의 `paymentKey`, `orderId`, `totalAmount`, `currency`를 재검증하고, 실제 method를 §4.2 규칙으로 판단한다.
 5. `DONE`이 확인돼야 공통 T2를 실행한다.
 
 토스 인증 뒤 승인 세션에는 시간 제한이 있으므로 successUrl 진입 직후 호출한다. 브라우저 failUrl·성공 URL 자체는 지급 근거가 아니다.
-
-### 5.3 카카오페이 준비·승인
-
-카카오페이는 준비와 승인을 분리한다.
-
-#### 준비
-
-1. `POST /payments/kakaopay/ready`에서 주문 소유자·`paymentMethod=KAKAOPAY`·미결제 상태를 검증한다.
-2. DB에 Ready operation token과 요청 스냅샷을 먼저 커밋한다.
-3. 트랜잭션 밖에서 카카오페이 단건 결제 준비 API를 호출한다.
-4. 응답의 `tid`, PC·모바일·앱 redirect URL, 생성 시각을 Payment에 저장한다.
-5. 프론트에는 실행 환경에 맞는 단일 `redirectUrl`만 반환한다.
-
-준비 응답이 유실됐는지 모르는 상태에서 새 결제 세션을 무작정 만든다고 가정하지 않는다. provider 조회로 기존 거래를 확인할 수 있으면 조회하고, 불가능하면 기존 세션 승인 가능성을 차단·만료시킨 뒤 새 준비를 허용한다.
-
-#### 승인
-
-1. 카카오페이 successUrl의 `pg_token`과 보존한 `orderId`를 받는다.
-2. 저장된 `tid`, 내부 주문 ID, 안정적인 가명 회원 식별자, 서버 총액으로 승인 command를 만든다.
-3. `pg_token`, Secret key, CID, `tid`를 로그에 기록하지 않는다. 필요하면 `pg_token`의 해시만 요청 중복 감사값으로 남긴다.
-4. timeout이면 새 `pg_token`으로 임의 재승인하지 않고 `tid` 기반 실제 주문을 조회한다.
-5. 승인 응답의 거래 ID·주문·사용자·금액·상태가 일치할 때만 공통 T2를 실행한다.
-
-카카오페이 cancelUrl·failUrl도 실제 실패 확정 근거가 아니다. 내부 주문 상태 또는 provider 조회 결과를 사용한다.
 
 ## 6. 상태 모델
 
@@ -251,36 +232,31 @@ PG 호출과 DB 커밋은 하나의 원자적 트랜잭션이 아니다. 승인 
 
 `provider_status`, `review_required`, `provider_transaction_id`, 취소 거래는 별도로 저장한다. `UNKNOWN`과 `FAILED`를 합치지 않는다. `REFUNDED → SUCCEEDED`처럼 늦은 응답이 취소를 되돌리는 전이를 금지한다.
 
-### 6.2 Remediation과 크레딧 예약
+### 6.2 개선안 포함 주문과 크레딧 예약
 
-| Remediation | Reservation | 처리 |
+상태는 기존 `AnalysisJobStatus`를 쓴다. 괄호 안은 프론트에 노출하는 값이다.
+
+| AnalysisJob | Reservation | 처리 |
 | --- | --- | --- |
-| `PENDING` | `RESERVED` | 사용 가능 수량에서 1개 예약 |
-| `PROCESSING` | `RESERVED` | 추가 차감 없음 |
-| `SUCCESS` | `CONSUMED` | 결과·diff·안전 검사 저장과 동시에 사용 확정 |
-| `FAILED` | `RELEASED` | 크레딧 반환 |
-| `CANCELED` | `RELEASED` | 처리 전 취소 시 반환 |
+| `PENDING` (`ACCEPTED`) | `RESERVED` | 주문 생성과 같은 트랜잭션에서 1개 예약 |
+| `RUNNING`·`RETRY_WAIT` (`PROCESSING`) | `RESERVED` | 추가 차감 없음 |
+| `SUCCEEDED` (`COMPLETED`) | `CONSUMED` | §8.3 성공 기준의 결과 저장과 동시에 사용 확정 |
+| `FAILED` (`FAILED`) | `RELEASED` | 크레딧 반환 |
+
+처리 전 취소 기능은 두지 않는다.
 
 `RESERVED → CONSUMED` 또는 `RESERVED → RELEASED` 중 하나만 가능하다. 반환 후 도착한 늦은 성공 결과를 공개하거나 다시 차감하지 않는다.
 
-### 6.3 VerificationSlot과 VerificationRequest
+### 6.3 재평가
 
-Remediation 성공 트랜잭션에서 slot 1, 2를 만든다.
+재평가는 원 주문을 복사한 새 분석 주문이다. 상태는 §6.2와 같은 `AnalysisJobStatus`를 쓰고, 크레딧 예약은 없다. 재평가 권리를 slot 행으로 저장하지 않고 조회할 때 계산한다.
 
-| Slot 상태 | 의미 |
-| --- | --- |
-| `AVAILABLE` | 요청 가능 |
-| `RESERVED` | Verification 작업에 예약 |
-| `CONSUMED` | 재수집 결과가 정상 생성됨 |
-| `EXPIRED` | 30일 기한 경과 |
-
-VerificationRequest는 `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `EXPIRED`를 사용한다.
-
-- 사이트에 수정안이 적용되지 않은 결과도 유효한 재검증 결과이므로 slot을 소비한다.
-- 우리 크롤러·서버·모델의 확정 장애로 결과를 만들지 못하면 slot을 `AVAILABLE`로 반환한다.
-- 장애 원인이 불명확하면 자동 반환하지 않고 검토 대상으로 남긴다.
-- 같은 slot은 한 번에 하나의 진행 중 Verification에만 연결한다.
-- 기한은 기본 `remediation.completed_at + 30일`이며 UTC로 저장한다.
+- 사용 횟수 = `baseline_order_id = 원 주문`이고 AnalysisJob이 `FAILED`가 아닌 주문 수.
+- 사이트에 개선안이 적용되지 않은 결과도 유효한 재평가 결과이므로 횟수를 사용한다.
+- `FAILED`(수집·AI 최종 실패)는 횟수에 넣지 않는다. 같은 원 주문에서 실패가 반복되면 운영 검토 대상으로 표시한다.
+- 남은 횟수 = `pack_product.reeval_count` − 사용 횟수.
+- 기한 = 원 주문 `analysis_job.completed_at` + `pack_product.reeval_window_days`. UTC로 계산한다.
+- 한 원 주문에는 진행 중(`PENDING`·`RUNNING`·`RETRY_WAIT`) 재평가가 최대 1건이다.
 
 ### 6.4 Refund
 
@@ -292,9 +268,9 @@ VerificationRequest는 `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `EXPIRED`�
 | `SUCCEEDED` | H→F | 취소 거래·원장 확정 |
 | `FAILED` | H→A | 취소 미실행이 확정된 경우만 반환 |
 
-### 6.5 FreeEvaluation
+### 6.5 무료 Scan
 
-`PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `EXPIRED`를 사용한다. 결과 30일 보관 만료는 작업 실패가 아니라 `EXPIRED`다.
+별도 상태가 없다. 분석 주문의 `AnalysisJobStatus`를 쓴다. 결과 30일 보관 만료는 작업 실패가 아니라 `AnalysisReport.reportStatus = EXPIRED`다(기존 `expiredReport()`).
 
 ## 7. 무료 Scan
 
@@ -306,27 +282,39 @@ VerificationRequest는 `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `EXPIRED`�
 - 이미지 의존 경고
 - 결과 보관 30일
 
-제한된 두 문제의 selector·근거·수정안은 API에서 `NULL`로 반환한다. 숨길 필드를 전체 응답에 넣고 프론트 CSS로 가리는 방식은 사용하지 않는다.
+`GET /geo/report/{orderId}` 응답을 만들 때 서버가 제한 필드를 지운다(규칙은 프론트 명세 §7.2). 숨길 필드를 전체 응답에 넣고 프론트 CSS로 가리는 방식은 사용하지 않는다. 제한 여부는 요청값이 아니라 주문에 저장된 `with_improvement`로 판단한다.
 
-무료 결과를 결제 후 그대로 전체 공개하지 않는다. Pack 크레딧으로 새 Remediation을 생성해야 한다.
+무료 결과를 결제 후 그대로 전체 공개하지 않는다. Pack 크레딧으로 새 개선안 포함 주문을 만들어야 한다.
 
-### 7.2 사용량 제한
+### 7.2 사용량 제한과 남용 방지
 
 | 사용자 | 한도 | 서버 기준 |
 | --- | --- | --- |
-| 비회원 | 1회 | 구체적인 재허용 기간 미확정 |
-| 회원 | 월 5회 | `Asia/Seoul` 달력 월 기준 제안 |
+| 회원 | 무료 Scan 월 5회 | `Asia/Seoul` 달력 월 기준 제안 |
 | 파트너 영업용 일괄 Scan | 별도 | 관리자·영업 권한 경로, 일반 API와 분리 |
 
-형식 오류·지원하지 않는 도메인처럼 작업이 생성되지 않은 요청은 한도를 사용하지 않는다. `202`로 접수된 작업은 이후 실패해도 남용 방지를 위해 기본적으로 한도에 포함한다. 시스템 장애 보상 규칙은 운영 정책으로 분리한다.
+- 한도 계산: `client_order`에서 `client_id = 본인`, `with_improvement = false`, `baseline_order_id IS NULL`, 이번 달 생성 건수. 재평가 주문은 무료 한도에 들어가지 않는다.
+- 동시 요청으로 6번째가 통과하지 않도록 회원의 Wallet 행을 잠근 뒤 건수를 세고 주문을 저장한다.
+- 형식 오류·지원하지 않는 도메인처럼 주문이 생성되지 않은 요청은 한도를 사용하지 않는다. 접수된 주문은 이후 실패해도 남용 방지를 위해 기본적으로 한도에 포함한다. 시스템 장애 보상 규칙은 운영 정책으로 분리한다.
 
-비회원 식별을 단순 IP 하나로만 결정하지 않는다. 브라우저 토큰, IP 기반 속도 제한, CAPTCHA 등 여러 신호를 조합하되 개인정보 보관 근거와 기간을 확정한다. 비회원 조회 토큰은 충분히 무작위여야 하고 원문 저장 대신 해시 저장을 우선한다.
+**로그인 필수와 가입 남용 방지**
+
+비로그인 방문자 경로를 만들지 않는다. 분석 주문 API는 Spring Security의 `anyRequest().authenticated()` 아래에 두고, 방문자 식별·조회 토큰·IP 기반 무료 한도는 구현하지 않는다.
+
+가입 필수만으로는 스크립트로 계정을 여러 개 만들어 무료 한도를 우회하는 것을 막지 못한다. 다음을 함께 적용한다.
+
+| 방어 | 내용 |
+| --- | --- |
+| 계정 인증 | 이메일 인증을 마친 계정 또는 Google OAuth 계정만 분석 주문을 접수한다. 미인증이면 `403 ACCOUNT_NOT_VERIFIED`. 현재 이메일 가입에는 인증 절차가 없으므로 새로 구현한다 |
+| 인증 없는 경로 속도 제한 | 남는 공개 경로는 가입·로그인·상품 조회·Webhook이다. 가입·로그인에 IP 기준 속도 제한을 건다 |
+| 회원별 한도 | 무료 Scan 월 5회. 개선안 포함 주문은 크레딧 수, 재평가는 원 주문당 횟수로 자연히 제한된다 |
+| 전역 큐 상한 | 대기 작업이 상한을 넘으면 `429 QUEUE_FULL`, 주문과 크레딧 예약을 만들지 않는다 |
 
 ### 7.3 비동기 처리
 
-`POST /evaluate`는 영속 FreeEvaluation을 생성하고 `202`를 반환한다. worker가 단일 처리 용량에 맞춰 `PENDING → PROCESSING`으로 전이한다. 프로세스 메모리의 `@Async`만으로 큐를 만들지 않는다.
+무료 Scan도 다른 분석 주문과 같이 영속 `analysis_job` 큐로 처리한다(현재 구현). worker가 단일 처리 용량에 맞춰 상태를 전이한다. 프로세스 메모리의 `@Async`만으로 큐를 만들지 않는다.
 
-## 8. Pack 크레딧과 Remediation
+## 8. Pack 크레딧과 개선안 포함 주문
 
 ### 8.1 Batch 불변식
 
@@ -336,7 +324,7 @@ VerificationRequest는 `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `EXPIRED`�
 | --- | --- | --- |
 | Q | granted_quantity | 최초 지급 |
 | A | available_quantity | 사용 가능 |
-| R | reserved_quantity | Remediation 예약 |
+| R | reserved_quantity | 개선안 포함 주문 예약 |
 | C | consumed_quantity | 성공 작업 사용 |
 | H | refund_held_quantity | 환불 보류 |
 | F | refunded_quantity | 환불 완료 |
@@ -347,7 +335,7 @@ VerificationRequest는 `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `EXPIRED`�
 | 원장 eventType | 수량 변화 | eventKey |
 | --- | --- | --- |
 | `PURCHASE` | Q+q, A+q | `purchase:{paymentId}` |
-| `RESERVE` | A-1, R+1 | `reserve:{remediationId}` |
+| `RESERVE` | A-1, R+1 | `reserve:{orderId}` |
 | `CONSUME` | R-1, C+1 | `consume:{reservationId}` |
 | `RELEASE` | R-1, A+1 | `release:{reservationId}` |
 | `REFUND_HOLD` | A-q, H+q | `refund-hold:{refundId}` |
@@ -363,22 +351,25 @@ VerificationRequest는 `PENDING`, `PROCESSING`, `SUCCESS`, `FAILED`, `EXPIRED`�
 2. 차단되지 않고 `expires_at > now OR expires_at IS NULL`인 Batch만 본다.
 3. 만료 시각이 빠른 Batch부터, NULL은 마지막으로 선택한다.
 4. 동일 만료면 지급 시각과 ID 순으로 선택한다.
-5. A가 1 이상이면 Remediation·Reservation·RESERVE를 같은 트랜잭션으로 저장한다.
+5. A가 1 이상이면 주문·AnalysisJob·Reservation·RESERVE를 같은 트랜잭션으로 저장한다.
 
 Pack 5·20은 실제 지급 시각에서 `Asia/Seoul` 달력 기준 12개월 후를 계산해 UTC로 저장한다. 단순 365일과 혼용하지 않는다. Pack 1은 정책 확정 전 `NULL`이다.
 
 만료 전에 예약된 R은 작업 종결까지 보호한다. 실패 반환 시 이미 만료 시각이 지났으면 RELEASE와 EXPIRE를 같은 트랜잭션에 기록한다.
 
-### 8.3 Remediation 성공 기준
+### 8.3 개선안 포함 주문 성공 기준
 
-크레딧 사용 확정은 다음이 모두 조회 가능하게 저장된 시점이다.
+MVP에서 크레딧 사용 확정은 다음이 모두 `analysis_report`에 저장된 시점이다.
 
-1. 전체 문제와 근거
-2. 위치 selector 또는 Schema path
-3. HTML·JSON-LD·텍스트 수정 diff
-4. 구문·Schema·본문 일치 안전 검사 결과
-5. 리포트·patchSet 연결
-6. VerificationSlot 2개와 기한
+1. AI `/diagnose` 응답의 채점 결과(`analysis`)
+2. 개선안 JSON-LD(`jsonld`). `jsonld.valid == false`이면 성공이 아니다
+3. AnalysisJob `SUCCEEDED`와 `completed_at`
+
+다음 항목은 Pack 제공 범위(§1.1)에 포함된 방향이다. AI 응답에 추가되는 시점에 성공 기준에 넣는다.
+
+- 위치 selector 또는 Schema path
+- HTML·JSON-LD·텍스트 수정 diff
+- 구문·Schema·본문 일치 안전 검사 결과
 
 점수만 생성되거나 개선안 JSON이 잘린 경우 성공이 아니다. 변경이 필요 없으면 빈 결과 대신 `NO_CHANGE_NEEDED`와 검증 근거를 저장한다.
 
@@ -386,22 +377,27 @@ Pack 5·20은 실제 지급 시각에서 `Asia/Seoul` 달력 기준 12개월 후
 
 - `attempt_no`, `next_attempt_at`, `lease_until`, `execution_token`, AI `remote_job_id`를 영속화한다.
 - 기본 시도 한도는 최초 포함 3회인 설계값이며 운영 측정 후 조정한다.
-- AI 서버는 같은 Remediation ID의 중복 제출을 기존 remote job에 연결해야 한다.
+- AI 서버는 같은 주문 ID의 중복 제출을 기존 remote job에 연결해야 한다.
 - lease 만료는 작업 종료 증거가 아니다. remote job을 먼저 조회한다.
 - 최신 execution token과 `Reservation.RESERVED`를 모두 검사한 결과만 반영한다.
 - 크롤링 차단·입력 초과·모델 최종 실패는 크레딧 반환 대상이다.
-- 이메일·문자 알림 실패는 Remediation 성공과 크레딧 사용을 되돌리지 않는다. Outbox로 재시도한다.
+- 이메일·문자 알림 실패는 주문 성공과 크레딧 사용을 되돌리지 않는다. Outbox로 재시도한다.
 
-### 8.5 재검증 요청
+### 8.5 재평가 요청
 
-1. Remediation 소유자·`SUCCESS`·검증 기한을 확인한다.
-2. Remediation을 잠근 뒤 가장 낮은 번호의 `AVAILABLE` slot을 `RESERVED`로 바꾼다.
-3. VerificationRequest와 idempotency 응답을 같은 트랜잭션으로 저장한다.
-4. worker가 원래 URL을 다시 수집한다. 클라이언트가 URL을 바꾸지 못한다.
-5. 적용 diff와 현재 페이지를 비교하고 재평가 결과를 저장한다.
-6. 성공은 slot `CONSUMED`, 확정 시스템 실패는 `AVAILABLE`로 전이한다.
+`POST /geo/order`에 `baselineOrderId`만 담긴 요청이다.
 
-`appliedAt`은 고객 표시·분석용 메타데이터일 뿐 검증 기한이나 권한 판단의 신뢰값으로 사용하지 않는다.
+1. 원 주문의 소유자, `with_improvement = true`, `baseline_order_id IS NULL`, AnalysisJob `SUCCEEDED`를 확인한다. 아니면 `404 RESOURCE_NOT_FOUND` 또는 `409 REEVAL_NOT_ALLOWED`.
+2. 원 주문 행을 `SELECT ... FOR UPDATE`로 잠근다.
+3. 기한이 지났으면 `409 REEVAL_WINDOW_EXPIRED`.
+4. 진행 중인 재평가가 있으면 `409 REEVAL_IN_PROGRESS`.
+5. 사용 횟수가 한도 이상이면 `409 REEVAL_LIMIT_EXCEEDED`.
+6. 원 주문의 URL·도메인을 복사한 새 주문과 AnalysisJob을 같은 트랜잭션으로 저장한다. 요청의 다른 필드는 무시하므로 클라이언트가 URL을 바꾸지 못한다.
+7. worker는 저장된 `raw_scraped_data`를 재사용하지 않고 라이브 페이지를 새로 수집해 `/evaluate`로 채점한다.
+
+멱등키는 받지 않는다. 4번 검사가 원 주문 잠금 아래에서 중복 생성을 막는다.
+
+추후: 6번 전에 페이지만 먼저 수집해 JSON-LD가 원 주문과 같으면 "아직 반영되지 않음"으로 안내하고 횟수를 쓰지 않는다. `OrderService`에 TODO로 남겨 두었다.
 
 ## 9. Pack 환불
 
@@ -440,10 +436,10 @@ Partner 계좌이체 해지·과오납 반환은 Pack Refund를 사용하지 않
 ### 10.1 공통 규칙
 
 - Base path는 `/api/v1`.
-- 회원 API는 `Authorization: Bearer <accessToken>`.
+- 공개 경로(가입·로그인·상품 조회·Webhook)를 제외한 모든 API는 `Authorization: Bearer <accessToken>`.
 - 회원 ID는 Principal에서 얻고 body에 받지 않는다.
 - 다른 회원의 리소스는 404로 응답한다.
-- 생성·승인·취소 POST는 `Idempotency-Key`가 필수다.
+- 생성·승인·취소 POST는 `Idempotency-Key`가 필수다. 단, `POST /geo/order`는 크레딧을 예약하는 `withImprovement: true`일 때만 필수다.
 - 같은 키·같은 정규화 body는 같은 리소스와 기존 결과를 반환한다.
 - 같은 키·다른 body는 `409 IDEMPOTENCY_KEY_REUSED`다.
 - 목록은 `(created_at,id)` 역순 cursor, 기본 20·최대 100이다.
@@ -465,23 +461,18 @@ Partner 계좌이체 해지·과오납 반환은 Pack Refund를 사용하지 않
 
 | 메서드·경로 | 인증 | 핵심 역할 |
 | --- | --- | --- |
-| POST `/evaluate` | 선택 | 무료 Scan 접수 |
-| GET `/evaluations/{evaluationId}` | 소유자·비회원 조회 토큰 | Scan 상태·제한 결과 |
 | GET `/pack-products` | 공개 | 판매 Pack·공급가액·VAT·총액 |
 | POST `/purchase-orders` | 회원 | Pack 주문·Payment 생성 |
 | GET `/purchase-orders/{orderId}` | 소유자 | 주문·결제·지급·환불 상태 |
 | GET `/purchase-orders` | 회원 | Pack 구매 이력 |
-| POST `/payments/confirm` | 소유자 | 토스 카드 승인 |
-| POST `/payments/kakaopay/ready` | 소유자 | 카카오페이 준비·redirect URL |
-| POST `/payments/kakaopay/approve` | 소유자 | 카카오페이 승인 |
+| POST `/payments/confirm` | 소유자 | 토스 카드·간편결제 승인 |
 | GET `/pack-credits/balance` | 회원 | 가용·예약·환불 보류 잔액 |
 | GET `/pack-credits/batches` | 회원 | 구매별 잔액·만료 |
 | GET `/pack-credits/ledger` | 회원 | Pack 원장 |
-| POST `/remediations` | 회원 | 크레딧 1개 예약·작업 접수 |
-| GET `/remediations/{remediationId}` | 소유자 | 작업·결과·재검증 권리 |
-| POST `/remediations/{remediationId}/cancel` | 소유자 | PENDING 작업 취소 — 선택 |
-| POST `/remediations/{remediationId}/verifications` | 소유자 | 무료 재수집 검증 접수 |
-| GET `/verifications/{verificationId}` | 소유자 | 재검증 상태·비교 결과 |
+| POST `/geo/order` (기존 확장) | 회원 | 무료 Scan, `withImprovement`로 개선안 포함 주문(크레딧 예약), `baselineOrderId`로 재평가 |
+| GET `/geo/reports` (기존 확장) | 회원 | 분석 주문 목록. 재평가 주문 제외, 점수·재평가 요약 포함 |
+| GET `/geo/report/{orderId}` (기존 확장) | 소유자 | 상태·결과(무료는 제한)·크레딧 상태·`versions`·남은 재평가 |
+| POST `/geo/report/delete/{orderId}` (기존) | 소유자 | 리포트 삭제. 원 주문 삭제 시 재평가 주문도 숨김 |
 | GET `/payments/{paymentId}/refund-eligibility` | 소유자 | 미사용 전액 환불 가능 확인 |
 | POST `/payments/{paymentId}/refunds` | 소유자 | provider 전액 취소 접수 |
 | GET `/refunds/{refundId}` | 소유자 | 환불 상태 |
@@ -491,10 +482,9 @@ Partner 계좌이체 해지·과오납 반환은 Pack Refund를 사용하지 않
 | 메서드·경로 | 인증 | 역할 |
 | --- | --- | --- |
 | POST `/webhooks/payments/toss` | PG 통지 | 영속 수신 후 빠른 2xx |
-| POST `/webhooks/payments/kakaopay` | provider 통지 | 계약·검증 방식이 확인된 경우만 활성화 |
 | GET `/admin/payment-reviews` | 관리자 | 장기 미확정·외부 취소·금액 불일치 |
 | POST `/admin/payments/{paymentId}/reconcile` | 관리자 | 실제 provider 조회 작업 재예약 |
-| GET `/admin/remediation-reviews` | 관리자 | lease·remote job·원장 불일치 |
+| GET `/admin/order-reviews` | 관리자 | 개선안 포함 주문의 lease·remote job·원장 불일치, 반복 실패 재평가 |
 
 관리자 API는 UI 숨김이 아니라 서버 권한 검사·감사 로그가 필요하다. 임의 Payment 성공·임의 무제한 크레딧 지급 버튼은 만들지 않는다.
 
@@ -535,9 +525,9 @@ Content-Type: application/json
 }
 ```
 
-`BANK_TRANSFER`는 이 API에서 `409 BANK_TRANSFER_NOT_ALLOWED_FOR_PACK`이다.
+`paymentMethod`는 `CARD` 또는 `EASY_PAY`다. `BANK_TRANSFER`는 이 API에서 `409 BANK_TRANSFER_NOT_ALLOWED_FOR_PACK`이다.
 
-### 10.5 토스 승인
+### 10.5 토스 승인 — 카드·간편결제 공통
 
 ```json
 {
@@ -549,41 +539,7 @@ Content-Type: application/json
 
 amount는 비교용이며 서버는 주문의 `totalAmount=53900`을 승인 command에 사용한다. paymentKey가 주문에 결합되면 다른 키로 바꿀 수 없다.
 
-### 10.6 카카오페이 준비·승인
-
-준비 요청:
-
-```json
-{
-  "orderId": "po_b7845e83-12f1-44a6-ad84-1d47d39fc743",
-  "clientType": "WEB_PC"
-}
-```
-
-준비 응답:
-
-```json
-{
-  "orderId": "po_b7845e83-12f1-44a6-ad84-1d47d39fc743",
-  "paymentId": "pay_539640c1",
-  "paymentStatus": "READY",
-  "redirectUrl": "https://online-pay.kakao.com/...",
-  "expiresAt": "2026-09-15T06:30:00Z"
-}
-```
-
-승인 요청:
-
-```json
-{
-  "orderId": "po_b7845e83-12f1-44a6-ad84-1d47d39fc743",
-  "pgToken": "<successUrl의 pg_token>"
-}
-```
-
-클라이언트에서 CID·Secret key·`tid`·금액·회원 ID를 받지 않는다.
-
-### 10.7 공통 승인 응답
+### 10.6 공통 승인 응답
 
 성공 `200`:
 
@@ -611,27 +567,21 @@ amount는 비교용이며 서버는 주문의 `totalAmount=53900`을 승인 comm
 }
 ```
 
-### 10.8 Remediation·재검증
+### 10.7 분석 주문·재평가
 
-Remediation 요청:
+요청·응답 예시는 프론트 명세(`GEO_credit_frontend_api_spec.md` §7·§11, `GEO_verification_compare_frontend_spec.md` §3)를 기준으로 한다. 백엔드 처리 분기:
 
-```json
-{
-  "url": "https://academy.example.com/curriculum",
-  "domainType": "EDUCATION",
-  "educationProfile": {
-    "segment": "LARGE_ACADEMY",
-    "noiseFilterEnabled": true
-  },
-  "notificationChannels": ["EMAIL"]
-}
-```
+| 요청 | 처리 |
+| --- | --- |
+| `baselineOrderId` 있음 | 재평가(§8.5). 다른 필드 무시, 크레딧·멱등키 없음 |
+| `withImprovement: true` | 멱등키 검사 → Wallet 잠금 → Batch 선택·RESERVE → 주문·AnalysisJob 저장(§8.2). 응답에 `creditStatus=RESERVED`, 남은 크레딧 |
+| 그 외 | 무료 Scan. Wallet 잠금 → 월 한도 검사(§7.2) → 주문·AnalysisJob 저장 |
 
-접수 `202`는 `remediationId`, `PENDING`, `RESERVED`, `reservedCredits=1`, 잔액, pollUrl을 반환한다. 성공 조회는 최소 `reportId`, `patchSetId`, `safetyCheckStatus`, `verificationRemaining=2`, `verificationExpiresAt`을 반환한다.
+모든 분기에서 계정 인증(`ACCOUNT_NOT_VERIFIED`)과 전역 큐 상한(`QUEUE_FULL`)을 먼저 검사한다.
 
-재검증 요청 body의 `appliedAt`은 선택 메타데이터다. 서버는 원 Remediation URL과 diff를 사용하고, 응답에 `packCreditsCharged=0`, 남은 slot 수를 포함한다.
+주문 요청의 도메인 입력은 §3의 `domainType`·`educationSegment`와 기존 `GeoOrderRequest.serviceType`을 하나로 합쳐야 한다(§20).
 
-### 10.9 오류 매핑
+### 10.8 오류 매핑
 
 | HTTP | code | 백엔드 처리 |
 | ---: | --- | --- |
@@ -640,6 +590,7 @@ Remediation 요청:
 | 400 | `EDUCATION_SEGMENT_REQUIRED` | EDUCATION segment 누락 |
 | 401 | `UNAUTHORIZED` | 인증 필요 |
 | 403 | `ACCOUNT_RESTRICTED` | 결제·원장 검토 계정 |
+| 403 | `ACCOUNT_NOT_VERIFIED` | 이메일 미인증 계정의 분석 주문 |
 | 404 | `RESOURCE_NOT_FOUND` | 없음 또는 다른 소유자 |
 | 409 | `IDEMPOTENCY_KEY_REUSED` | 동일 키·다른 body |
 | 409 | `ORDER_EXPIRED` | 신규 승인 금지 |
@@ -649,10 +600,11 @@ Remediation 요청:
 | 409 | `PAYMENT_SESSION_EXPIRED` | provider 세션 만료 |
 | 409 | `BANK_TRANSFER_NOT_ALLOWED_FOR_PACK` | Pack 수동이체 금지 |
 | 409 | `DEPOSIT_ALREADY_REPORTED` | 같은 Partner 입금 알림 중복 — 계획 |
-| 409 | `INSUFFICIENT_PACK_CREDITS` | Remediation 생성 안 함 |
-| 409 | `REMEDIATION_ALREADY_STARTED` | 처리 전 취소 시점 경과 |
-| 409 | `VERIFICATION_LIMIT_EXCEEDED` | 사용 가능한 slot 없음 |
-| 409 | `VERIFICATION_WINDOW_EXPIRED` | 기한 경과 |
+| 409 | `INSUFFICIENT_PACK_CREDITS` | 개선안 포함 주문 생성 안 함 |
+| 409 | `REEVAL_NOT_ALLOWED` | 재평가 대상 아님(개선안 없는 주문·재평가 주문·미완료) |
+| 409 | `REEVAL_IN_PROGRESS` | 같은 원 주문의 재평가 진행 중 |
+| 409 | `REEVAL_LIMIT_EXCEEDED` | 재평가 횟수 소진 |
+| 409 | `REEVAL_WINDOW_EXPIRED` | 재평가 기한 경과 |
 | 409 | `CREDITS_IN_USE` | 환불과 예약 경쟁 |
 | 409 | `CREDITS_ALREADY_USED` | 자동 전액 환불 불가 |
 | 409 | `NO_REFUNDABLE_CREDITS` | 환불 가능 수량 없음 |
@@ -679,24 +631,22 @@ Remediation 요청:
 
 | 테이블 | 주요 필드 | 필수 제약 |
 | --- | --- | --- |
-| `pack_product` | code, name, version, quantity, supply_amount, vat_amount, total_amount, currency, validity_months nullable, verification_count, verification_window_days, active, policy_version | code UNIQUE, 금액·수량 양수, total=supply+vat |
+| `pack_product` | code, name, version, quantity, supply_amount, vat_amount, total_amount, currency, validity_months nullable, reeval_count, reeval_window_days, active, policy_version | code UNIQUE, 금액·수량 양수, total=supply+vat |
 | `purchase_order` | public_id, member_id, product snapshot, payment_method, payment_provider, supply/vat/discount/total snapshot, policy_version, lifecycle, expires_at, created_at | public_id UNIQUE, total>0, 회원 FK |
 | `payment` | purchase_order_id, provider, environment, merchant_id, provider_transaction_id nullable, status, provider_status, total_amount, refunded_amount, approved_at, grant_applied_at, operation_token, lease_until, next_check_at, review_required | order UNIQUE, provider 거래 식별 UNIQUE, 0≤refunded≤total |
 | `pack_credit_wallet` | member_id, toss_customer_key, restricted, reason, updated_at | member_id PK/FK, customer key UNIQUE |
 | `pack_credit_batch` | member_id, payment_id, Q/A/R/C/H/F/E, granted_at, expires_at nullable, blocked | payment_id UNIQUE, 수량 비음수, Q 합계 CHECK |
-| `pack_credit_reservation` | remediation_id, batch_id, member_id, quantity, state, reserved_at, finalized_at | remediation_id UNIQUE, quantity=1 |
-| `pack_credit_ledger` | member_id, batch_id, event_key, event_type, delta Q/A/R/C/H/F/E, remediation_id, refund_id, reason, actor, created_at | event_key UNIQUE, UPDATE·DELETE 금지 |
-| `remediation_request` | public_id, member_id, url, normalized_url_hash, domain_type, education_segment, noise_filter_enabled, status, job recovery fields, report_id, patch_set_id, verification_expires_at | public_id UNIQUE, 도메인 CHECK |
-| `verification_slot` | remediation_id, slot_no, status, current_verification_id nullable, expires_at | (remediation_id,slot_no) UNIQUE, slot_no IN (1,2) |
-| `verification_request` | public_id, remediation_id, slot_id, member_id, status, applied_at, job recovery fields, result_id, failure_code | public_id UNIQUE, 진행 상태의 slot_id 부분 UNIQUE |
+| `pack_credit_reservation` | order_id, batch_id, member_id, quantity, state, reserved_at, finalized_at | order_id UNIQUE, quantity=1 |
+| `pack_credit_ledger` | member_id, batch_id, event_key, event_type, delta Q/A/R/C/H/F/E, order_id, refund_id, reason, actor, created_at | event_key UNIQUE, UPDATE·DELETE 금지 |
+| `client_order` (기존 확장) | + `with_improvement` boolean NOT NULL DEFAULT false, + `baseline_order_id` nullable self FK | `CHECK (baseline_order_id IS NULL OR with_improvement = false)`. 원 주문이 재평가 주문이 아닌지는 서비스에서 검사 |
+| `analysis_job` (기존 확장) | + `completed_at` nullable | `SUCCEEDED` 전이 시 기록. 재평가 기한 계산 기준 |
+| `client` (기존 확장) | + `email_verified_at` nullable | OAuth 가입은 가입 시각으로 채움 |
 | `payment_refund` | payment_id, batch_id, member_id, quantity, amount, status, reason, pg_idempotency_key, provider_cancel_key, retry fields | 진행 환불 payment당 최대 1개, MVP 전액 |
-| `api_idempotency` | member_or_subject, operation_scope, idem_key, request_hash, resource_id, state, response snapshot, timestamps | subject+scope+key UNIQUE |
-| `free_evaluation` | public_id, member_id nullable, anonymous_subject_hash nullable, url, domain fields, status, result fields, expires_at, job recovery fields | 정확히 한 subject, 도메인 CHECK |
-| `free_scan_usage` | member_or_subject, period_key, evaluation_id, accepted_at | evaluation_id UNIQUE, 한도 조회 인덱스 |
+| `api_idempotency` | member_id, operation_scope, idem_key, request_hash, resource_id, state, response snapshot, timestamps | member+scope+key UNIQUE |
 | `payment_webhook_inbox` | provider, environment, transmission_id nullable, payload_hash, protected_payload, status, retry fields | provider 범위 중복 방지 |
 | `outbox_event` | event_key, aggregate, event_type, protected_payload, state, retry fields | event_key UNIQUE |
 
-카카오페이 `tid`와 토스 `paymentKey`는 `provider_transaction_id`로 정규화하되 provider별 길이·형식은 어댑터가 검증한다. provider 원문 응답은 꼭 필요한 필드만 정규화해 저장하고, 원문 보관이 필요하면 암호화·접근·삭제 정책을 별도로 둔다.
+토스 `paymentKey`는 `provider_transaction_id`로 저장하고 길이·형식은 어댑터가 검증한다. 승인 결과의 실제 method(`카드`·`간편결제`)와 간편결제사 이름은 Payment에 함께 저장한다. provider 원문 응답은 꼭 필요한 필드만 정규화해 저장하고, 원문 보관이 필요하면 암호화·접근·삭제 정책을 별도로 둔다.
 
 ### 11.3 관계
 
@@ -706,25 +656,25 @@ erDiagram
     PAYMENT ||--o| PACK_CREDIT_BATCH : grants
     PAYMENT ||--o{ PAYMENT_REFUND : refunds
     PACK_CREDIT_BATCH ||--o{ PACK_CREDIT_RESERVATION : allocates
-    REMEDIATION_REQUEST ||--o| PACK_CREDIT_RESERVATION : reserves
-    REMEDIATION_REQUEST ||--|{ VERIFICATION_SLOT : grants
-    VERIFICATION_SLOT ||--o{ VERIFICATION_REQUEST : attempts
+    CLIENT_ORDER ||--o| PACK_CREDIT_RESERVATION : reserves
+    CLIENT_ORDER ||--o{ CLIENT_ORDER : reevaluated_by
+    CLIENT_ORDER ||--|| ANALYSIS_JOB : runs
+    CLIENT_ORDER ||--o| ANALYSIS_REPORT : stores
 ```
 
-지급 전 Payment에는 Batch가 없다. FreeEvaluation에는 Batch·Reservation이 없다. member_id 일치는 서비스 계층과 가능한 복합 FK로 모두 보호한다.
+지급 전 Payment에는 Batch가 없다. 무료 Scan·재평가 주문에는 Reservation이 없다. member_id 일치는 서비스 계층과 가능한 복합 FK로 모두 보호한다.
 
 ### 11.4 인덱스
 
 - 구매 목록: `(member_id, created_at DESC, id DESC)`.
 - Batch 선택: `(member_id, expires_at, granted_at, id)` + 가용·차단 필터.
 - 원장 목록: `(member_id, created_at DESC, id DESC)`.
-- Remediation 큐: `(status, next_attempt_at, created_at, id)`.
-- Verification 큐: `(status, next_attempt_at, created_at, id)`.
+- 분석 작업 큐: `analysis_job (status, next_run_at)`.
+- 재평가 조회: `client_order (baseline_order_id)`.
 - Payment 복구: `(status, next_check_at)`.
 - Refund·Inbox·Outbox: `(status/state, next_attempt_at)`.
 - 진행 환불 부분 UNIQUE: `payment_id WHERE status IN ('REQUESTED','PROCESSING','UNKNOWN')`.
-- Free Scan 회원 한도: `(member_id, period_key, accepted_at)`.
-- 비회원 한도: `(anonymous_subject_hash, accepted_at)`.
+- 무료 Scan 한도: `client_order (client_id, created_at) WHERE with_improvement = false AND baseline_order_id IS NULL`.
 
 ## 12. 동시성·멱등성
 
@@ -732,7 +682,7 @@ erDiagram
 
 구현 범위의 기본 잠금 순서는 다음과 같다.
 
-> Wallet → Payment → Batch(ID 순) → Remediation → Reservation → VerificationSlot → VerificationRequest → Refund
+> Wallet → Payment → Batch(ID 순) → 원 주문(재평가 시) → Reservation → Refund
 
 - 후보를 조회한 뒤 실제 전이 트랜잭션에서 다시 조건을 검사한다.
 - 잔액을 읽고 Java에서 1을 빼서 저장하는 방식만 사용하지 않는다.
@@ -747,31 +697,22 @@ Wallet은 가입 시 만들고 기존 회원은 마이그레이션으로 채운�
 | 계층 | 유일성 | 보호 대상 |
 | --- | --- | --- |
 | HTTP API | subject + operation scope + idempotency key + request hash | 더블클릭·네트워크 재전송 |
-| 비즈니스 DB | order당 Payment, payment당 Batch, remediation당 Reservation, ledger eventKey | 서로 다른 HTTP 키·Webhook·대사 |
+| 비즈니스 DB | 구매 주문당 Payment, payment당 Batch, 분석 주문당 Reservation, ledger eventKey | 서로 다른 HTTP 키·Webhook·대사 |
 | provider | 승인·취소 operation별 저장된 키 | 외부 중복 호출 |
 | worker | execution token + lease + remote job ID | AI 중복 실행·늦은 결과 |
-| 재검증 | remediation+slotNo UNIQUE + slot 조건 전이 | 2회 초과·동시 요청 |
+| 재평가 | 원 주문 행 잠금 + 진행 중 검사 + 횟수 검사 | 한도 초과·동시 요청 |
 
 HTTP idempotency 행과 생성 리소스를 같은 트랜잭션에 연결한다. 인증·소유자 검사를 캐시된 응답 반환보다 먼저 한다. HTTP 키 보관은 최소 30일의 설계값을 사용하되 미종결 거래의 비즈니스 유일성은 영구 제약으로 유지한다.
 
 ## 13. 결제 어댑터
 
-provider별 준비·승인 입력이 다르므로 Controller DTO를 하나의 nullable 필드 묶음으로 만들지 않는다. 공통화 지점은 검증된 결과의 내부 반영이다.
+Pack 결제사는 토스페이먼츠 하나다. 카드와 간편결제를 같은 어댑터로 처리하고, 여러 PG를 위한 범용 추상화는 만들지 않는다.
 
 ```java
-interface PaymentGateway {
-    PaymentProvider provider();
+class TossPaymentGateway {
+    ApprovalResult confirm(TossConfirmCommand command);
     PaymentSnapshot query(QueryPaymentCommand command);
     CancelResult cancel(CancelCommand command);
-}
-
-interface TossPaymentGateway extends PaymentGateway {
-    ApprovalResult confirm(TossConfirmCommand command);
-}
-
-interface KakaoPayGateway extends PaymentGateway {
-    KakaoReadyResult ready(KakaoReadyCommand command);
-    ApprovalResult approve(KakaoApproveCommand command);
 }
 ```
 
@@ -786,23 +727,12 @@ interface KakaoPayGateway extends PaymentGateway {
 | orderId 조회 | 주문 기준 조회 | paymentKey 유실 복구 |
 | 취소 | paymentKey 기준 취소 | Refund 고정 멱등키·총액 |
 
-### 13.2 카카오페이 매핑
+### 13.2 비밀값
 
-| 작업 | 공식 API 의미 | 저장·검증 |
-| --- | --- | --- |
-| 준비 | 내부 주문·회원·금액·반환 URL | `tid`, redirect URL, 생성 시각 |
-| 승인 | 저장 `tid` + `pg_token` + 동일 주문·회원 | 승인 금액·주문·상태 |
-| 주문 조회 | 저장된 provider 식별자 기준 | timeout·응답 유실 복구 |
-| 취소 | 승인 거래 기준 | Refund 총액·취소 결과 |
-
-정확한 HTTP 경로·인증 헤더·필드명은 계약한 카카오페이 API 버전의 DTO에 캡슐화한다. 도메인 서비스가 CID·Secret key·`pg_token`을 알게 하지 않는다.
-
-### 13.3 비밀값
-
-- 토스 시크릿 키, 카카오페이 Secret key·CID는 서버 Secret 관리에 둔다.
-- 테스트·운영 키, MID/CID, Webhook URL, DB를 가능한 분리한다.
+- 토스 시크릿 키는 서버 Secret 관리에 둔다.
+- 테스트·운영 키, MID, Webhook URL, DB를 가능한 분리한다.
 - 카드번호·CVC·비밀번호를 백엔드 DTO·DB에 받거나 저장하지 않는다.
-- `pg_token`, provider 인증 헤더, business secret을 로그·trace·예외 메시지에 포함하지 않는다.
+- provider 인증 헤더, business secret을 로그·trace·예외 메시지에 포함하지 않는다.
 
 ## 14. Webhook·대사·복구
 
@@ -829,7 +759,7 @@ Webhook payload의 성공 문자열만 보고 Pack을 지급하지 않는다. We
 | --- | --- |
 | Payment `CONFIRMING/UNKNOWN` | 1분 스캔 + 지수 백오프 |
 | Refund `REQUESTED/PROCESSING/UNKNOWN` | Outbox + 1분 누락 복구 |
-| Remediation·Verification lease 만료 | remote job 조회 후 재개 |
+| 분석 작업 lease 만료 | remote job 조회 후 재개 |
 | Inbox·Outbox 실패 | 1→5→15→60분, 이후 검토 |
 | 30분 이상 결제 미확정 | 관리자 알림, 자동 실패 금지 |
 | provider 성공·DB 미지급 | 검증 후 T2 재실행 |
@@ -848,12 +778,11 @@ Webhook payload의 성공 문자열만 보고 Pack을 지급하지 않는다. We
 | `PurchaseOrderService` | 주문 스냅샷·payment method 검증 |
 | `PaymentApplicationService` | provider 호출 전후 조정 |
 | `PaymentTransactionService` | 짧은 T1/T2 트랜잭션 |
-| `TossPaymentGateway` | 토스 승인·조회·취소 DTO |
-| `KakaoPayGateway` | 카카오 준비·승인·조회·취소 DTO |
+| `TossPaymentGateway` | 토스 카드·간편결제 승인·조회·취소 DTO |
 | `PackCreditService` | Batch 선택·예약·소비·반환·환불 수량 |
-| `RemediationService` | 작업 접수·상태·결과 반영 |
-| `VerificationService` | 2개 slot 예약·재수집 결과 |
-| `FreeEvaluationService` | 무료 한도·제한 결과·보관 |
+| `OrderService` (기존 확장) | 무료 한도·개선안 크레딧 예약·재평가 검증 |
+| `AnalysisReportService` (기존 확장) | 무료 결과 제한·`versions`·점수 요약 |
+| `GeoAsyncWorker` (기존 확장) | 주문 종류별 AI 호출(`/evaluate`·`/diagnose`)·결과 반영·CONSUME/RELEASE |
 | `RefundApplicationService` | 환불 보류·provider 취소·복구 |
 | `WebhookInboxService` | provider 통지 영속 수신 |
 | `ReconciliationWorker` | 실제 거래 조회·불일치 복구 |
@@ -880,11 +809,13 @@ approve(principal, providerRequest, apiIdempotencyKey):
   return 202 + orderStatusUrl
 ```
 
-토스 `confirm`과 카카오 `approve` 호출 자체는 서로 다른 메서드지만 결과 반영은 동일 경로를 사용한다.
+카드와 간편결제는 같은 토스 `confirm` 경로와 같은 결과 반영 경로를 사용한다.
 
 ## 16. 보안·개인정보·운영
 
+- 분석 주문 API는 로그인 필수다. 인증 없이 열린 경로는 가입·로그인·상품 조회·Webhook뿐이며, 가입·로그인에는 IP 속도 제한을 건다(§7.2).
 - 모든 회원 리소스 명령·조회는 소유자를 검사한다. UUID가 권한 검사를 대체하지 않는다.
+- 결과 제한·크레딧 차감 여부는 요청 필드가 아니라 주문에 저장된 `with_improvement`와 서버 원장으로 판단한다.
 - CORS는 실제 프론트 origin과 `Authorization`, `Content-Type`, `Idempotency-Key`만 필요한 범위로 허용한다.
 - 상품 가격·VAT·크레딧·환불액·주문 소유자는 서버 기준이다.
 - 크롤링 URL은 http/https만 허용하고 loopback·사설 IP·link-local·클라우드 메타데이터를 DNS 해석과 redirect마다 차단한다.
@@ -1010,10 +941,10 @@ Founding 잔여 좌석은 신청 접수가 아니라 승인·계약 확정 중 �
 | PAY-08 | T2 후 응답 유실 | 조회·재요청으로 기존 성공 복원 |
 | PAY-09 | timeout·일시 404 | UNKNOWN, 즉시 재결제 유도 없음 |
 | PAY-10 | 취소 뒤 늦은 성공 응답 | 취소 누계·REFUNDED 되돌림 없음 |
-| KAKAO-01 | 같은 ready 멱등키 10회 | 활성 결제 세션 하나 또는 동일 준비 결과 |
-| KAKAO-02 | 다른 주문의 pg_token·orderId 조합 | 승인·지급 없음 |
-| KAKAO-03 | approve timeout | tid 조회로 복구, 새 토큰 임의 승인 없음 |
-| KAKAO-04 | cancelUrl 뒤 실제 승인 발견 | provider 조회에 따라 지급 또는 취소 종결 |
+| EASY-01 | `EASY_PAY` 주문을 토스 간편결제로 승인 | 지급 1회, 실제 method `간편결제` 기록 |
+| EASY-02 | `CARD` 주문에서 사용자가 간편결제로 결제 | 금액 일치 시 지급, 실제 method 기록 |
+| EASY-03 | 승인 결과 method가 `가상계좌` 등 허용 외 | 자동 지급 없음, 검토 대상 |
+| EASY-04 | 다른 주문의 paymentKey·orderId 조합 | 승인·지급 없음 |
 
 ### 18.2 도메인·무료 Scan
 
@@ -1027,23 +958,28 @@ Founding 잔여 좌석은 신청 접수가 아니라 승인·계약 확정 중 �
 | FREE-01 | 회원 월 5회 접수 후 6번째 | 429, 작업 생성 없음 |
 | FREE-02 | 무료 결과 응답 | 문제 3개, 상세는 1개, 제한 필드 NULL |
 | FREE-03 | 결과 30일 만료 | EXPIRED, Pack 원장 영향 없음 |
+| FREE-04 | JWT 없이 `POST /geo/order` | 401, 주문 없음 |
+| FREE-05 | 이메일 미인증 계정 주문 | 403 ACCOUNT_NOT_VERIFIED, 주문 없음 |
+| FREE-06 | 무료 4회 사용 후 동시 요청 3건 | 1건만 접수, 나머지 429 |
+| FREE-07 | 재평가 주문 | 무료 한도 사용 안 함 |
 
-### 18.3 Pack 원장·Remediation·재검증
+### 18.3 Pack 원장·개선안 포함 주문·재평가
 
 | ID | 시나리오 | 기대 결과 |
 | --- | --- | --- |
-| CRD-01 | 잔액 1에서 서로 다른 작업 2건 동시 접수 | 1건만 RESERVED, 다른 건 409 |
-| CRD-02 | 같은 요청 멱등키 10회 | Remediation·Reservation·RESERVE 하나 |
-| CRD-03 | 같은 URL을 새 키로 새 작업 | 새 작업·별도 크레딧 예약 |
-| CRD-04 | diff 또는 안전 검사 최종 실패 | SUCCESS 없음, 크레딧 RELEASE |
+| CRD-01 | 잔액 1에서 서로 다른 개선안 포함 주문 2건 동시 접수 | 1건만 RESERVED, 다른 건 409 |
+| CRD-02 | 같은 요청 멱등키 10회 | 주문·Reservation·RESERVE 하나 |
+| CRD-03 | 같은 URL을 새 키로 새 주문 | 새 주문·별도 크레딧 예약 |
+| CRD-04 | JSON-LD 생성 최종 실패(`jsonld.valid=false`) | SUCCEEDED 없음, 크레딧 RELEASE |
 | CRD-05 | 성공 저장과 CONSUME 중 DB 실패 | 둘 다 롤백·재반영 가능 |
 | CRD-06 | 성공·실패 callback 경쟁 | 최신 token만 한 번 종결 |
-| CRD-07 | PENDING 취소·worker 시작 경쟁 | CANCELED+RELEASE 또는 PROCESSING 중 하나 |
-| VER-01 | 성공 Remediation | slot 1·2 정확히 생성 |
-| VER-02 | 재검증 3건 동시 요청 | 최대 2건만 예약, 나머지 409 |
-| VER-03 | 미적용 페이지 재검증 성공 | 결과 저장·slot CONSUMED·크레딧 0 |
-| VER-04 | 내부 크롤러 확정 장애 | slot AVAILABLE 복원·크레딧 0 |
-| VER-05 | 기한 경과 | 새 요청 409, AVAILABLE slot EXPIRED |
+| REEVAL-01 | 개선안 없는 주문·재평가 주문을 원 주문으로 지정 | 409 REEVAL_NOT_ALLOWED |
+| REEVAL-02 | 재평가 3건 동시 요청 | 1건만 생성, 나머지 409 REEVAL_IN_PROGRESS |
+| REEVAL-03 | 미적용 페이지 재평가 성공 | 결과 저장·횟수 1 사용·크레딧 0 |
+| REEVAL-04 | 재평가 FAILED | 횟수 사용 안 함·크레딧 0 |
+| REEVAL-05 | 기한 경과 | 409 REEVAL_WINDOW_EXPIRED |
+| REEVAL-06 | 2회 성공 후 3번째 | 409 REEVAL_LIMIT_EXCEEDED |
+| REEVAL-07 | 요청 body에 다른 URL 포함 | 무시, 원 주문 URL로 수집 |
 | DB-01 | 모든 시나리오 뒤 | Q=A+R+C+H+F+E, 모든 수량 비음수 |
 
 ### 18.4 환불
@@ -1052,7 +988,7 @@ Founding 잔여 좌석은 신청 접수가 아니라 승인·계약 확정 중 �
 | --- | --- | --- |
 | REF-01 | Pack 5 전량 미사용 | 5개 H→F, 53,900원 전액 취소 |
 | REF-02 | Pack 20 중 7개 사용 | provider 호출 없이 409 |
-| REF-03 | 환불 접수·Remediation 예약 경쟁 | 한쪽만 조건 충족, 이중 사용 없음 |
+| REF-03 | 환불 접수·개선안 포함 주문 예약 경쟁 | 한쪽만 조건 충족, 이중 사용 없음 |
 | REF-04 | 취소 성공 후 DB 반영 전 종료 | H 유지 후 조회로 F 확정 |
 | REF-05 | 취소 timeout | UNKNOWN, H 유지 |
 | REF-06 | 취소 미실행 확정 | H→A 한 번, REFUND_RELEASE 한 번 |
@@ -1076,10 +1012,10 @@ Founding 잔여 좌석은 신청 접수가 아니라 승인·계약 확정 중 �
 | 1 | Pack 상품·금액·도메인 enum·마이그레이션 | 가격/VAT/도메인 테스트 |
 | 2 | 주문·Payment·Wallet·Batch·원장 + Mock Gateway | PAY-01~05, DB 불변식 |
 | 3 | 토스 카드 승인·조회 | 테스트 결제 E2E·응답 유실 복구 |
-| 4 | 카카오페이 ready·approve·조회·취소 | KAKAO 테스트 |
-| 5 | Remediation 예약·worker·결과 원자 커밋 | CRD 동시성·실패 반환 |
-| 6 | VerificationSlot·재수집 비교 | VER 테스트 |
-| 7 | 무료 Scan 한도·제한 결과·30일 보관 | FREE·DOM 테스트 |
+| 4 | 토스 간편결제 노출·method 검증 | EASY 테스트 |
+| 5 | 개선안 포함 주문의 크레딧 예약·`/diagnose` 연동·결과 원자 커밋 | CRD 동시성·실패 반환 |
+| 6 | 재평가(`baseline_order_id`)·횟수·기한 | REEVAL 테스트 |
+| 7 | 무료 Scan 한도·제한 결과·30일 보관·이메일 인증 | FREE·DOM 테스트 |
 | 8 | Webhook Inbox·Outbox·대사 | provider 성공/DB 실패 복구 |
 | 9 | 미사용 Pack 전액 환불 | REF 테스트 |
 | 10 | 운영 검토·환경 분리·관측성 | 실제 유료 공개 기준 |
@@ -1092,13 +1028,13 @@ Founding 잔여 좌석은 신청 접수가 아니라 승인·계약 확정 중 �
 | --- | --- |
 | 실제 기존 엔티티·API 이름 | 소스·ERD와 매핑 필요 |
 | Pack 1 만료 | 미확정, NULL |
-| 재검증 기한 기준 | 명세 기본은 Remediation 성공 +30일, 정책 확인 필요 |
-| 재검증 장애 slot 복원 | 시스템 장애 복원 기본, 상세 분류 필요 |
-| 무료 비회원 1회의 재허용 기간 | 미확정 |
+| 재평가 기한 기준 | 명세 기본은 원 주문 완료 +30일, 정책 확인 필요 |
+| 재평가 실패 시 횟수 복원 | `FAILED`는 횟수에 넣지 않는 기본안. 고객 사이트 차단으로 인한 반복 실패는 운영 검토 |
+| 이메일 인증 방식 | 가입 시 메일 링크 인증 제안. OAuth 계정은 인증된 것으로 간주 |
+| 가입·로그인 속도 제한 값 | IP당 분당 횟수 설계 필요 |
+| 주문 요청의 도메인 입력 | §3의 `domainType`·`educationSegment`와 기존 `serviceType` 병합 필요 |
 | 무료 회원 월 초기화 시각 | Asia/Seoul 달력 월 제안 |
-| 비회원 식별·조회 토큰 | 개인정보·남용 방지 설계 필요 |
-| 토스 widget variant·API 버전 | 카드만 노출하도록 계약·설정 확인 |
-| 카카오페이 CID·Secret·API 버전·반환 URL | 테스트·운영 환경별 확정 |
+| 토스 결제위젯 설정·API 버전 | 카드·간편결제만 노출하도록 계약·설정 확인. 간편결제 수수료 견적 확인 |
 | provider Webhook·조회 기능 | 실제 가맹점 계약과 공식 버전 확인 |
 | 유료 리포트 보관 기간 | Pack 크레딧 만료와 별도 정책 필요 |
 | 환불 문의 채널·약관 문구 | 실제 유료 공개 전 확정 |
@@ -1109,14 +1045,14 @@ Founding 잔여 좌석은 신청 접수가 아니라 승인·계약 확정 중 �
 ## 21. 근거 자료
 
 - `PRICING_MODEL.md`, 2026-09-14: 타깃, 상품 구조, 가격, Pack·Partner 기능, 계좌이체 정책.
-- `GEO_credit_frontend_api_spec.md` v2.0: 프론트 요청·응답과 화면 상태 계약.
+- `GEO_credit_frontend_api_spec.md` v2.3: 프론트 요청·응답과 화면 상태 계약.
+- `GEO_verification_compare_frontend_spec.md` v2.0: 재평가·전후 비교 계약.
 - 첨부 `SW상상기업 사업계획서_Mal-Geum(송지한).pdf`: GEO 서비스와 비동기 처리 배경. 가격·범위는 최신 정책을 우선한다.
 - [토스페이먼츠 주문서형 결제 연동](https://docs.tosspayments.com/guides/v2/payment-widget/integration)
 - [토스페이먼츠 코어 API](https://docs.tosspayments.com/reference)
 - [토스페이먼츠 인증·멱등키](https://docs.tosspayments.com/reference/using-api/authorization)
 - [토스페이먼츠 Webhook](https://docs.tosspayments.com/guides/v2/webhook)
-- [카카오페이 온라인 단건 결제](https://developers.kakaopay.com/docs/payment/online/single-payment)
 - [Spring Data JPA Locking](https://docs.spring.io/spring-data/jpa/reference/jpa/locking.html)
 - [PostgreSQL Explicit Locking](https://www.postgresql.org/docs/current/explicit-locking.html)
 
-결제사 공식 문서는 2026-09-15 다시 확인했다. 카카오페이 세부 HTTP 계약은 실제 가맹점 애플리케이션과 적용 API 버전에서 최종 확인해야 한다. 이 문서의 DB 구조, 상태, 잠금, 복구 주기는 본 프로젝트용 설계이며 결제사의 사업 정책이나 법적 환불 규정을 대신하지 않는다.
+결제사 공식 문서는 2026-09-15 다시 확인했다. 이 문서의 DB 구조, 상태, 잠금, 복구 주기는 본 프로젝트용 설계이며 결제사의 사업 정책이나 법적 환불 규정을 대신하지 않는다.

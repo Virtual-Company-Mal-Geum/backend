@@ -1,7 +1,9 @@
 # GEO 상품·결제 프론트엔드 API 명세서
 
-- 버전: 2.1
+- 버전: 2.3
 - 작성일: 2026-09-18
+- 개정: 2026-09-24 — 별도 Remediation·Verification 리소스를 없애고 기존 분석 주문 API(`/geo/order`, `/geo/report`)로 통합. 로그인 회원의 무료 Scan도 같은 API로 통합
+- 개정: 2026-09-25 — 비로그인 방문자 Scan 제거. 모든 분석 주문은 로그인·계정 인증 필수
 - 대상: GEO 서비스 프론트엔드·백엔드 개발자
 - Base URL: `/api/v1`
 - 인증 방식: JWT Bearer
@@ -16,7 +18,7 @@
 
 | 단계 | 상품·기능 | 계약 상태 | 프로젝트 구현 |
 | --- | --- | --- | --- |
-| 1 | 무료 Scan | 확정 | 현재 `/evaluate` 기반으로 연결 |
+| 1 | 무료 Scan | 확정 | `/geo/order`. 로그인 회원만 |
 | 1 | Remediation Pack 구매·크레딧·작업·환불 | 확정 | 우선 구현 |
 | 1 | 토스페이먼츠 일반 카드·간편결제 | 확정 | 우선 구현 |
 | 2 | Partner 플랜·세금계산서·계좌이체 | 초안 | API 계획만 남기고 이번 프로젝트에서는 구현하지 않음 |
@@ -81,12 +83,26 @@ Partner API는 프론트가 임의로 선구현하지 않는다. 이 문서의 `
 
 모든 표시 가격은 서버 상품 API를 사용한다. 프론트에 상품명·가격·크레딧 수량을 하드코딩하지 않는다.
 
+### 3.0 사용자 구분
+
+모든 분석 주문은 회원가입 후 로그인한 회원만 할 수 있다. 로그인 전 방문자용 Scan은 없다. 회원별 주문 목록과 스팸 주문 방지를 회원 단위로 관리하기 위해서다.
+
+무료·유료는 **사람이 아니라 주문 단위**로 정해진다. 같은 회원도 무료 Scan과 개선안 포함 주문을 모두 할 수 있다. 이 문서에서 "회원"은 플랜(`FREE`·Partner)이나 Pack 크레딧 보유 여부와 관계없이 로그인한 사용자 전체를 뜻한다.
+
+| 주문 구분 | 조건 | 비용 |
+| --- | --- | --- |
+| 무료 Scan | 개선안 없이 요청한 주문 | 0원. 월 한도 적용 |
+| 개선안 포함 주문 | `withImprovement: true` | Pack 크레딧 1개 또는 Partner 한도 |
+| 재평가 | `baselineOrderId` 지정 | 원 주문에 포함 |
+
+분석 주문은 이메일 인증을 마친 계정 또는 Google 계정 로그인만 접수한다. 미인증 계정은 `403 ACCOUNT_NOT_VERIFIED`를 받는다(§14).
+
 ### 3.1 무료 Scan
 
 | 항목 | 정책 |
 | --- | --- |
 | 가격 | 0원 |
-| 한도 | 비회원 URL 1회, 회원 월 5회 |
+| 한도 | 회원 월 5회 |
 | 결과 | 점수, 상위 문제 3개, 그중 1개만 위치·근거 상세, 이미지 의존 경고 |
 | 보관 | 30일 |
 
@@ -107,12 +123,12 @@ Pack 크레딧 1개로 한 페이지에 다음 작업을 제공한다.
 1. 전체 문제 진단
 2. 위치별 HTML·JSON-LD·텍스트 수정 diff
 3. 구문·Schema·본문 일치 안전 검사
-4. 적용 완료 후 30일 안에 재수집 검증 2회
+4. 개선안 적용 후 30일 안에 재평가 2회
 
 - Pack 5·20의 미사용 크레딧은 지급일부터 12개월 유효하다.
 - Pack 1 미사용 크레딧 만료일은 정책이 확정되지 않아 `expiresAt=null`을 허용한다.
-- 재수집 검증 2회는 새 Pack 크레딧을 차감하지 않는다.
-- 동일 페이지의 새 개선 작업은 크레딧 1개를 다시 사용한다.
+- 재평가 2회는 새 Pack 크레딧을 차감하지 않는다.
+- 동일 페이지의 새 개선안 포함 주문은 크레딧 1개를 다시 사용한다.
 - Pack 구매액을 Partner 첫 달 요금에서 차감하는 정책은 적용 기간·중복 사용 규칙이 확정되기 전까지 프론트에서 계산하지 않는다.
 
 ### 3.3 Partner — 계획
@@ -152,14 +168,14 @@ Idempotency-Key: <UUID v4>
 
 | API | 키 생성 시점 |
 | --- | --- |
-| `POST /evaluate` | Scan 제출 |
 | `POST /purchase-orders` | Pack 구매 클릭 |
 | `POST /payments/confirm` | 토스 successUrl 진입 |
-| `POST /remediations` | 개선 작업 제출 |
-| `POST /remediations/{id}/verifications` | 재검증 요청 |
+| `POST /geo/order` (`withImprovement: true`) | 개선안 포함 주문 제출 |
 | `POST /payments/{id}/refunds` | Pack 환불 확인 |
 | `POST /partner-applications` | Partner 신청 — 계획 |
 | `POST /billing/invoices/{id}/deposit-reports` | 입금 알림 — 계획 |
+
+`POST /geo/order`는 크레딧을 예약하는 개선안 포함 주문일 때만 멱등키가 필요하다. 개선안 없는 주문과 재평가 주문(`baselineOrderId`)은 크레딧을 쓰지 않아 멱등키 없이 보낸다. 재평가는 진행 중인 건이 있으면 서버가 `409 REEVAL_IN_PROGRESS`로 막기 때문에 중복 생성되지 않는다.
 
 ### 4.3 값 형식
 
@@ -225,31 +241,28 @@ Idempotency-Key: <UUID v4>
 | `FAILED` | 결제 실패 |
 | `EXPIRED` | 주문 또는 승인 가능 시간 만료 |
 
-### 5.2 Remediation 작업
+### 5.2 분석 주문
 
-| status | 화면 처리 |
+기존 분석 주문의 `jobStatus`를 그대로 쓴다.
+
+| jobStatus | 화면 처리 |
 | --- | --- |
-| `PENDING` | 대기, Pack 크레딧 1개 예약 |
+| `ACCEPTED` | 대기. 개선안 포함 주문이면 Pack 크레딧 1개 예약 |
 | `PROCESSING` | 수집·진단·개선안 생성 중 |
-| `SUCCESS` | 결과·diff·안전 검사 표시 |
-| `FAILED` | 크레딧 반환 여부 표시 |
-| `CANCELED` | 처리 시작 전 취소 완료 |
+| `COMPLETED` | 결과 표시 |
+| `FAILED` | 실패 안내. 개선안 포함 주문이면 크레딧 반환 여부 표시 |
 
-| reservationStatus | 의미 |
+개선안 포함 주문에만 `creditStatus`가 있고, 그 외 주문은 `null`이다.
+
+| creditStatus | 의미 |
 | --- | --- |
-| `RESERVED` | 작업에 크레딧 1개 예약 |
-| `CONSUMED` | Remediation 성공으로 사용 확정 |
-| `RELEASED` | 실패 또는 처리 전 취소로 반환 |
+| `RESERVED` | 주문에 크레딧 1개 예약 |
+| `CONSUMED` | 주문 성공으로 사용 확정 |
+| `RELEASED` | 실패로 반환 |
 
-### 5.3 재검증
+### 5.3 재평가
 
-| status | 화면 처리 |
-| --- | --- |
-| `PENDING` | 재수집 대기 |
-| `PROCESSING` | 재수집·비교 중 |
-| `SUCCESS` | 적용 여부·잔여 문제 표시 |
-| `FAILED` | 실패 안내. 서버 정책에 따라 시도 횟수 복원 여부 표시 |
-| `EXPIRED` | 30일 검증 기한 만료 |
+재평가도 분석 주문이므로 §5.2의 `jobStatus`를 그대로 쓴다. 크레딧을 쓰지 않으므로 `creditStatus`는 `null`이다. 기한 만료는 상태값이 아니라 요청 시 `409 REEVAL_WINDOW_EXPIRED`로 알린다.
 
 ### 5.4 Pack 환불
 
@@ -280,8 +293,6 @@ Idempotency-Key: <UUID v4>
 
 | 단계 | 메서드 | 경로 | 인증 | 용도 |
 | --- | --- | --- | --- | --- |
-| 구현 | POST | `/evaluate` | 선택 | 무료 Scan 접수 |
-| 구현 | GET | `/evaluations/{evaluationId}` | 소유자·비회원 토큰 | 무료 Scan 상태·결과 조회 |
 | 구현 | GET | `/pack-products` | 공개 | 판매 중 Pack 조회 |
 | 구현 | POST | `/purchase-orders` | 회원 | Pack 구매 주문 생성 |
 | 구현 | GET | `/purchase-orders/{orderId}` | 소유자 | 주문·결제 상태 조회 |
@@ -290,11 +301,9 @@ Idempotency-Key: <UUID v4>
 | 구현 | GET | `/pack-credits/balance` | 회원 | Pack 크레딧 잔액 |
 | 구현 | GET | `/pack-credits/batches` | 회원 | 구매별 잔여량·만료일 |
 | 구현 | GET | `/pack-credits/ledger` | 회원 | 크레딧 변경 이력 |
-| 구현 | POST | `/remediations` | 회원 | 개선 작업 접수 |
-| 구현 | GET | `/remediations/{remediationId}` | 소유자 | 작업 상태·결과 조회 |
-| 선택 | POST | `/remediations/{remediationId}/cancel` | 소유자 | 처리 전 취소 |
-| 구현 | POST | `/remediations/{remediationId}/verifications` | 소유자 | 적용 후 재수집 검증 |
-| 구현 | GET | `/verifications/{verificationId}` | 소유자 | 재검증 결과 조회 |
+| 기존 확장 | POST | `/geo/order` | 회원 | 분석 주문. 기본은 무료 Scan, `withImprovement`로 개선안 포함, `baselineOrderId`로 재평가 |
+| 기존 확장 | GET | `/geo/reports` | 회원 | 분석 주문 목록 (재평가 주문 제외) |
+| 기존 확장 | GET | `/geo/report/{orderId}` | 소유자 | 주문 상태·결과·크레딧·재평가 정보 조회 |
 | 구현 | GET | `/payments/{paymentId}/refund-eligibility` | 소유자 | Pack 전액 환불 가능 확인 |
 | 구현 | POST | `/payments/{paymentId}/refunds` | 소유자 | 미사용 Pack 전액 환불 |
 | 구현 | GET | `/refunds/{refundId}` | 소유자 | 환불 상태 조회 |
@@ -309,86 +318,82 @@ Idempotency-Key: <UUID v4>
 
 ## 7. 무료 Scan
 
-### POST `/evaluate`
+무료 Scan은 개선안 없는 분석 주문이다. 유료 주문과 같은 `/geo/order`·`/geo/report`를 쓰고, 서버가 결과를 제한해서 내려준다. 무료 Scan은 Pack 크레딧을 생성·예약·차감하지 않는다.
 
-비회원 URL 1회 또는 회원 월 5회 제한 Scan을 접수한다. 기존 구현이 동기 응답이라도 처리 시간이 길면 아래 `202` 계약으로 전환한다.
+### 7.1 POST `/geo/order`
+
+`withImprovement`를 생략하거나 `false`로 보낸다. 멱등키는 보내지 않는다.
 
 ```http
-POST /api/v1/evaluate
-Idempotency-Key: a37f91dd-833f-4fdb-a23f-82ff04761b6b
+POST /api/v1/geo/order
+Authorization: Bearer <accessToken>
 Content-Type: application/json
 
 {
-  "url": "https://academy.example.com",
-  "domainType": "EDUCATION",
-  "educationProfile": {
-    "segment": "SMALL_ACADEMY",
-    "noiseFilterEnabled": false
-  }
+  "targetUrl": "https://academy.example.com",
+  "siteName": "예시학원",
+  "serviceType": "교육"
 }
 ```
 
-접수 `202 Accepted`:
+접수 `200 OK`:
 
 ```json
 {
-  "evaluationId": "eval_632af2b1",
-  "billingType": "FREE_SCAN",
-  "status": "PENDING",
-  "pollUrl": "/api/v1/evaluations/eval_632af2b1",
-  "retentionExpiresAt": "2026-10-14T06:00:00Z"
+  "message": "GEO 분석 요청이 접수되었습니다.",
+  "orderId": 131,
+  "creditStatus": null,
+  "availablePackCredits": null
 }
 ```
 
-현재 프로젝트의 실제 조회 경로가 다르면 기존 `/evaluate` DTO와 합의한 뒤 `pollUrl`을 확정한다. 무료 결과는 Pack 크레딧을 생성·예약·차감하지 않는다.
+- 이번 달 무료 한도(§3.1)를 넘으면 `429 FREE_SCAN_LIMIT_EXCEEDED`를 반환하고 주문을 만들지 않는다.
+- 결과는 `GET /geo/report/{orderId}`로 조회한다. polling 규칙은 §15의 분석 주문과 같다.
+- 무료 주문 결과도 `GET /geo/reports` 목록에 나온다. 재평가 버튼은 없다(`reevalRemaining: null`).
 
-### GET `/evaluations/{evaluationId}`
+### 7.2 무료 결과 제한
 
-회원은 JWT로, 비회원은 접수 응답에서 별도로 발급한 조회 토큰으로 본인 Scan만 조회한다. 비회원 조회 토큰의 전달 방식은 기존 인증 구조와 함께 확정한다.
+`withImprovement: false` 주문을 `GET /geo/report/{orderId}`로 조회하면 `limited: true`가 오고, `aiResult`는 서버에서 잘린 상태로 온다. **제한은 서버가 응답에서 값을 지우는 방식이다.** 프론트가 받은 값을 숨기는 방식으로 구현하지 않는다.
 
-완료 `200 OK`:
+| `aiResult.result` 필드 | 무료 결과 |
+| --- | --- |
+| 항목별 `score`, `raw_score`, `total_score`, `score_band`, `on_page_geo_readiness` | 모두 제공 |
+| `global_caps_applied` | 모두 제공 |
+| `top_3_failure_reasons` | 모두 제공 — 상위 문제 3개 |
+| 항목별 `evidence_summary`, `improvements` | **상세 항목 1개만** 제공. 나머지 항목은 `evidence_summary: null`, `improvements: []` |
+| `domain_specific_completeness.missing_or_uncertain` | 도메인 항목이 상세 항목일 때만 제공. 아니면 `[]` |
+| `priority_actions` | `[]` |
+| `aiResult.content_warning` | 제공 — 이미지 의존·본문 부족 경고 |
+
+상세 항목은 `score / 만점` 비율이 가장 낮은 항목 1개다. 서버가 고르고, `limitedDetailKey`로 알려준다.
 
 ```json
 {
-  "evaluationId": "eval_632af2b1",
-  "billingType": "FREE_SCAN",
-  "status": "SUCCESS",
-  "url": "https://academy.example.com",
-  "domainType": "EDUCATION",
-  "score": 61,
-  "topIssues": [
-    {
-      "rank": 1,
-      "code": "IMAGE_ONLY_CONTENT",
-      "title": "핵심 정보가 이미지에만 있습니다.",
-      "detailVisible": true,
-      "location": "main .curriculum-banner",
-      "evidence": "본문 텍스트 길이가 기준보다 짧습니다."
+  "orderId": 131,
+  "jobStatus": "COMPLETED",
+  "withImprovement": false,
+  "creditStatus": null,
+  "limited": true,
+  "limitedDetailKey": "cross_source_consistency",
+  "aiResult": {
+    "status": "success",
+    "result": {
+      "common_evaluation": {
+        "entity_topic_clarity":     { "score": 11.0, "evidence_summary": null, "improvements": [] },
+        "cross_source_consistency": { "score": 3.0,  "evidence_summary": "학원명이 본문과 메타데이터에서 다르게 표기됨", "improvements": ["학원 정식 명칭을 한 가지로 통일"] }
+      },
+      "top_3_failure_reasons": ["...", "...", "..."],
+      "priority_actions": []
     },
-    {
-      "rank": 2,
-      "code": "MISSING_COURSE_SCHEMA",
-      "title": "과정 구조화 데이터가 부족합니다.",
-      "detailVisible": false,
-      "location": null,
-      "evidence": null
-    },
-    {
-      "rank": 3,
-      "code": "ENTITY_INCONSISTENCY",
-      "title": "학원명과 지점 정보가 일관되지 않습니다.",
-      "detailVisible": false,
-      "location": null,
-      "evidence": null
-    }
-  ],
-  "imageDependencyWarning": true,
-  "retentionExpiresAt": "2026-10-14T06:00:00Z",
-  "completedAt": "2026-09-14T06:01:12Z"
+    "content_warning": null
+  },
+  "reevalRemaining": null
 }
 ```
 
-제한된 문제의 `location`과 `evidence`는 응답에서 `null`이어야 한다. 전체 상세는 기존 무료 결과를 해제하는 방식이 아니라 Pack 크레딧으로 새 Remediation을 요청한다.
+화면 처리:
+- `evidence_summary`가 `null`인 항목은 피드백 자리에 잠금 표시와 `개선안 포함 주문에서 확인할 수 있습니다.`를 보여주고, Pack 구매(§8)로 연결한다.
+- 점수·차트는 유료 결과와 같은 방식으로 그린다.
 
 ## 8. Pack 상품과 구매 주문
 
@@ -412,8 +417,8 @@ GET /api/v1/pack-products
       "totalAmount": 16390,
       "currency": "KRW",
       "creditValidityMonths": null,
-      "verificationCountPerCredit": 2,
-      "verificationWindowDays": 30
+      "reevalCountPerCredit": 2,
+      "reevalWindowDays": 30
     },
     {
       "productCode": "REMEDIATION_PACK_5",
@@ -424,8 +429,8 @@ GET /api/v1/pack-products
       "totalAmount": 53900,
       "currency": "KRW",
       "creditValidityMonths": 12,
-      "verificationCountPerCredit": 2,
-      "verificationWindowDays": 30
+      "reevalCountPerCredit": 2,
+      "reevalWindowDays": 30
     },
     {
       "productCode": "REMEDIATION_PACK_20",
@@ -436,8 +441,8 @@ GET /api/v1/pack-products
       "totalAmount": 163900,
       "currency": "KRW",
       "creditValidityMonths": 12,
-      "verificationCountPerCredit": 2,
-      "verificationWindowDays": 30
+      "reevalCountPerCredit": 2,
+      "reevalWindowDays": 30
     }
   ]
 }
@@ -639,106 +644,74 @@ Content-Type: application/json
 
 ### GET `/pack-credits/ledger`
 
-원장 항목은 `eventId`, `type`, `quantity`, `batchId`, 연관 `orderId`·`remediationId`·`refundId`, `reasonCode`, `createdAt`을 반환한다.
+원장 항목은 `eventId`, `type`, `quantity`, `batchId`, 연관 `orderId`(Pack 구매 주문)·`analysisOrderId`(분석 주문)·`refundId`, `reasonCode`, `createdAt`을 반환한다.
 
-## 11. Remediation 작업
+## 11. 개선안 포함 주문과 재평가
 
-### POST `/remediations`
+별도 작업(Remediation) 리소스를 두지 않는다. 유료 개선안도 기존 분석 주문 API로 요청하고, 주문할 때 개선안 포함 여부를 정한다. 재평가 요청과 목록·상세 조회, 전후 비교 화면은 [`GEO_verification_compare_frontend_spec.md`](GEO_verification_compare_frontend_spec.md)에서 정의한다. 이 절은 크레딧에 관련된 부분만 다룬다.
 
-한 페이지의 유료 개선 작업을 접수하고 Pack 크레딧 1개를 예약한다.
+### POST `/geo/order` — 개선안 포함 주문
+
+기존 주문 요청에 `withImprovement`를 추가한다. `true`이면 서버가 Pack 크레딧 1개를 예약하고 AI 서버에 채점과 개선안(JSON-LD)을 함께 요청한다.
 
 ```http
-POST /api/v1/remediations
+POST /api/v1/geo/order
 Authorization: Bearer <accessToken>
 Idempotency-Key: 54e53bb1-f044-446e-a493-8551434e71ad
 Content-Type: application/json
 
 {
-  "url": "https://academy.example.com/curriculum",
-  "domainType": "EDUCATION",
-  "educationProfile": {
-    "segment": "LARGE_ACADEMY",
-    "noiseFilterEnabled": true
-  },
-  "notificationChannels": ["EMAIL"]
+  "targetUrl": "https://academy.example.com/curriculum",
+  "siteName": "예시학원",
+  "serviceType": "교육",
+  "withImprovement": true
 }
 ```
 
-접수 `202 Accepted`:
+| 필드 | 설명 |
+| --- | --- |
+| `withImprovement` | 생략하거나 `false`이면 무료 Scan(§7.1)이다. 크레딧 예약도 멱등키도 없다 |
+
+접수 `200 OK` — 기존 응답에 크레딧 필드를 추가한다.
 
 ```json
 {
-  "remediationId": "rem_2b39ef72",
-  "status": "PENDING",
-  "reservationStatus": "RESERVED",
-  "reservedCredits": 1,
-  "availablePackCredits": 3,
-  "pollUrl": "/api/v1/remediations/rem_2b39ef72",
-  "createdAt": "2026-09-14T07:00:00Z"
+  "message": "GEO 분석 요청이 접수되었습니다.",
+  "orderId": 128,
+  "creditStatus": "RESERVED",
+  "availablePackCredits": 3
 }
 ```
 
-### GET `/remediations/{remediationId}`
+- `withImprovement`가 `false`이면 `creditStatus`와 `availablePackCredits`는 `null`이다.
+- 사용 가능한 크레딧이 없으면 `409 INSUFFICIENT_PACK_CREDITS`를 반환하고 주문을 만들지 않는다.
+- 주문이 `COMPLETED`가 되면 `CONSUMED`, `FAILED`가 되면 `RELEASED`로 바뀐다.
 
-성공 완료 예시:
+### GET `/geo/report/{orderId}` — 크레딧 관련 필드
+
+기존 응답에 다음을 추가한다. 재평가 관련 필드(`versions`, `reevalRemaining` 등)는 비교 명세서 §3.4를 따른다.
 
 ```json
 {
-  "remediationId": "rem_2b39ef72",
-  "url": "https://academy.example.com/curriculum",
-  "domainType": "EDUCATION",
-  "educationProfile": {
-    "segment": "LARGE_ACADEMY",
-    "noiseFilterEnabled": true
-  },
-  "status": "SUCCESS",
-  "reservationStatus": "CONSUMED",
-  "reportId": "report_bf19d3",
-  "patchSetId": "patch_8b3e2a",
-  "safetyCheckStatus": "PASSED",
-  "verificationRemaining": 2,
-  "verificationExpiresAt": "2026-10-14T07:02:11Z",
-  "completedAt": "2026-09-14T07:02:11Z"
+  "orderId": 128,
+  "jobStatus": "COMPLETED",
+  "withImprovement": true,
+  "creditStatus": "CONSUMED",
+  "limited": false,
+  "limitedDetailKey": null
 }
 ```
 
-결과 상세 API는 기존 리포트 계약과 병합한다. 최소한 위치별 diff, 안전 검사 결과, 원문·수정안, 경고를 구분해 표시할 수 있어야 한다.
+무료 주문(`withImprovement: false`)은 `limited: true`와 잘린 `aiResult`가 온다(§7.2).
 
-### POST `/remediations/{remediationId}/cancel` — 선택
+개선안 포함 주문의 `aiResult`에는 채점 결과(`analysis`)와 개선안 JSON-LD(`jsonld`)가 함께 들어 있다. 형식은 비교 명세서 §4를 따른다.
 
-`PENDING`에서만 취소하고 예약 크레딧을 반환한다. `PROCESSING` 이후에는 `409 REMEDIATION_ALREADY_STARTED`를 반환한다.
+### 재평가
 
-### POST `/remediations/{remediationId}/verifications`
+`POST /geo/order`에 `{ "baselineOrderId": <원 주문 id> }`만 보낸다. 크레딧을 차감하지 않는다. 자세한 규칙은 비교 명세서 §3.2를 따른다.
 
-적용 후 재수집 검증을 요청한다. URL은 원 Remediation의 URL을 사용하므로 body에 받지 않는다.
-
-```http
-POST /api/v1/remediations/rem_2b39ef72/verifications
-Authorization: Bearer <accessToken>
-Idempotency-Key: db7c1115-ea54-4af8-86c3-352887928c29
-Content-Type: application/json
-
-{
-  "appliedAt": "2026-09-20T03:20:00Z"
-}
-```
-
-접수 `202 Accepted`:
-
-```json
-{
-  "verificationId": "ver_2be498a1",
-  "remediationId": "rem_2b39ef72",
-  "status": "PENDING",
-  "remainingAfterRequest": 1,
-  "packCreditsCharged": 0,
-  "pollUrl": "/api/v1/verifications/ver_2be498a1"
-}
-```
-
-### GET `/verifications/{verificationId}`
-
-완료 응답은 `status`, `appliedPatchCount`, `unappliedPatchCount`, `remainingIssueCount`, `beforeScore`, `afterScore`, `completedAt`을 반환한다.
+- 원 주문이 `withImprovement: true`이고 `COMPLETED`인 경우에만 가능하다.
+- 원 주문 1건당 재평가 횟수와 기한은 `GET /pack-products`의 `reevalCountPerCredit`, `reevalWindowDays`와 같다. 기한은 원 주문 완료 시각부터 센다.
 
 ## 12. Pack 전액 환불
 
@@ -973,6 +946,7 @@ Content-Type: application/json
 | 400 | `EDUCATION_SEGMENT_REQUIRED` | 소형·대형 학원 선택 요청 |
 | 401 | `UNAUTHORIZED` | 재로그인 후 리소스 ID로 상태 복원 |
 | 403 | `ACCOUNT_RESTRICTED` | 문의 경로 표시 |
+| 403 | `ACCOUNT_NOT_VERIFIED` | 이메일 인증 안내, 인증 메일 재발송 |
 | 404 | `RESOURCE_NOT_FOUND` | 없는 항목 또는 접근 권한 없음 |
 | 409 | `IDEMPOTENCY_KEY_REUSED` | 원 body 복구 또는 새 사용자 동작으로 처리 |
 | 409 | `ORDER_EXPIRED` | 새 Pack 주문 생성 |
@@ -980,9 +954,10 @@ Content-Type: application/json
 | 409 | `PAYMENT_PROVIDER_MISMATCH` | 주문의 결제수단으로 진행 |
 | 409 | `PAYMENT_SESSION_EXPIRED` | 새 결제 세션 또는 주문 생성 |
 | 409 | `INSUFFICIENT_PACK_CREDITS` | Pack 구매 화면 안내 |
-| 409 | `REMEDIATION_ALREADY_STARTED` | 취소 불가 안내 |
-| 409 | `VERIFICATION_LIMIT_EXCEEDED` | 포함 재검증 2회 소진 안내 |
-| 409 | `VERIFICATION_WINDOW_EXPIRED` | 30일 기한 만료 안내 |
+| 409 | `REEVAL_NOT_ALLOWED` | 재평가 대상이 아님. 주문 상세 재조회 |
+| 409 | `REEVAL_IN_PROGRESS` | 진행 중인 재평가 polling |
+| 409 | `REEVAL_LIMIT_EXCEEDED` | 포함된 재평가 소진 안내 |
+| 409 | `REEVAL_WINDOW_EXPIRED` | 재평가 기한 만료 안내 |
 | 409 | `CREDITS_IN_USE` | 진행 중 작업 완료·취소 후 환불 안내 |
 | 409 | `CREDITS_ALREADY_USED` | 자동 전액 환불 불가 안내 |
 | 409 | `BANK_TRANSFER_NOT_ALLOWED_FOR_PACK` | 카드 또는 간편결제 선택 안내 |
@@ -1014,15 +989,14 @@ type PendingBankTransfer = {
 - access token, PG Secret, 계좌 인증정보를 저장하지 않는다.
 - 결제 승인·작업 접수·환불·입금 알림 요청 중에는 해당 버튼을 비활성화한다.
 - 버튼 비활성화는 UX 보호이며 서버 멱등성이 중복 방지의 최종 기준이다.
-- 결제 성공, Remediation 접수·실패, 환불 성공 뒤 Pack 잔액을 다시 조회한다.
+- 결제 성공, 개선안 포함 주문 접수·실패, 환불 성공 뒤 Pack 잔액을 다시 조회한다.
 
 Polling 종료 조건:
 
 | 대상 | 계속 | 중지 |
 | --- | --- | --- |
 | Pack 결제 | `CONFIRMING`, `UNKNOWN` | `READY`, `SUCCEEDED`, `FAILED`, `REFUNDED`, `EXPIRED` |
-| Remediation | `PENDING`, `PROCESSING` | `SUCCESS`, `FAILED`, `CANCELED` |
-| 재검증 | `PENDING`, `PROCESSING` | `SUCCESS`, `FAILED`, `EXPIRED` |
+| 분석 주문(개선안 포함·재평가) | `ACCEPTED`, `PROCESSING` | `COMPLETED`, `FAILED` |
 | 환불 | `REQUESTED`, `PROCESSING`, `UNKNOWN` | `SUCCEEDED`, `FAILED` |
 | Partner 신청 | `REQUESTED`, `REVIEWING` | `APPROVED`, `REJECTED`, `CANCELED` |
 | 계좌이체 청구 | `DEPOSIT_REPORTED` | `AWAITING_DEPOSIT`, `PAID`, `OVERDUE`, `CANCELED` |
@@ -1034,13 +1008,14 @@ Polling 종료 조건:
 ### 16.1 우선 구현
 
 - 무료 Scan에 교육·이커머스·뉴스만 허용하고 `TECH_BLOG`를 노출하지 않는다.
+- 무료 Scan은 `withImprovement` 없이 `POST /geo/order`로 접수하고, 결과 제한은 서버 응답(`limited: true`)으로만 처리한다.
 - 교육 선택 시 소형·대형 학원 분류와 노이즈 필터 기본값을 적용한다.
 - Pack 1·5·20의 VAT 별도 가격과 VAT 포함 결제 합계를 서버 응답으로 표시한다.
 - `CARD`와 `EASY_PAY`만 Pack 구매에 허용하고, 두 방식 모두 `TOSS` provider로 처리한다.
 - 결제 성공과 Pack 크레딧 지급이 모두 확인된 뒤 구매 완료를 표시한다.
 - Pack 5·20 크레딧 만료일을 지급일 + 12개월로 표시한다.
-- Remediation 1건에 Pack 크레딧 1개만 예약·사용한다.
-- 성공한 Remediation에 30일 내 재검증 2회를 제공하고 추가 크레딧을 차감하지 않는다.
+- 개선안 포함 주문 1건에 Pack 크레딧 1개만 예약·사용한다.
+- 완료된 개선안 포함 주문에 30일 내 재평가 2회를 제공하고 추가 크레딧을 차감하지 않는다.
 - 미사용 Pack만 VAT 포함 결제 합계 전액을 원 결제수단으로 환불한다.
 - message 문자열이 아닌 오류 code로 분기한다.
 
@@ -1059,9 +1034,13 @@ Polling 종료 조건:
 | --- | --- |
 | Pack 1 미사용 크레딧 만료 | 미확정, `null` 허용 |
 | Pack 구매액의 Partner 첫 달 차감 | 적용 기간·대상 Pack·중복 차감 규칙 확정 필요 |
-| 재검증 실패 시 횟수 복원 | 미확정 |
-| 무료 Scan의 비회원 식별·월 한도 초기화 시각 | 기존 인증·남용 방지 정책과 합의 필요 |
-| 실제 `/evaluate` 조회 API | 현재 프로젝트 DTO 확인 필요 |
+| 재평가 실패 시 횟수 복원 | 미확정 |
+| 주문 도메인 입력 | §2.2의 `domainType`·`educationProfile`과 기존 `GeoOrderRequest.serviceType`을 하나로 합쳐야 함 |
+| 개선안 diff·안전 검사 표시 | §3.2 제공 항목이지만 현재 AI 응답은 JSON-LD만 있음. `/diagnose` 연동 시 응답 계약 확정 |
+| Pack·Partner 동시 보유 시 차감 순서 | Partner 한도를 먼저 쓸지 결정 필요 |
+| 회원 월 한도 초기화 시각 | `Asia/Seoul` 달력 월 제안 |
+| 이메일 인증 방식 | 가입 시 메일 링크 인증 제안. Google 계정은 인증된 것으로 간주 |
+| 무료 결과 상세 항목 선정 | §7.2의 "비율이 가장 낮은 항목 1개"는 초안. 기획 확정 필요 |
 | 토스페이먼츠 운영 키와 반환 URL | 환경별 설정 필요 |
 | Partner 입금 계좌 | 법인·사업자 계좌 확정 필요 |
 | 세금계산서 발행 시스템 | 직접 처리 또는 외부 서비스 결정 필요 |
