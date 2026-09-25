@@ -120,12 +120,6 @@ public class Order extends BaseTimeEntity { // 백엔드에서 처리하는 사�
             public String toString() {
                 return "education";
             }
-        },
-        TECHBLOG {
-            @Override
-            public String toString() {
-                return "tech_blog";
-            }
         }
     }
 }

@@ -68,6 +68,10 @@ public class OrderService {
 
     //TODO: 이전에 입력한적 있는 Url인 경우에 해당 주문과 매핑할지 말지 묻기?
     //새 분석으로 완전 덮어쓰기 vs 이전 분석은 남기고 새 분석하기
+    //→ 재평가(개선안 적용 후)는 "이전 분석은 남기고 새 분석" 쪽: 원본 주문 복사 + baseline_order_id(root)로 연결
+
+    //TODO: 재평가 요청 시 AI 호출 전에 스크래핑만 먼저 해서 JSON-LD가 baseline과 달라졌는지 확인(해시 비교)
+    //같으면 "아직 개선안이 반영되지 않은 것 같아요" 확인 문구를 띄우고 크레딧 차감 없이 반환
 
     public Order createOrder(Client client, GeoOrderRequest orderRequest) {
         return Order.builder()
