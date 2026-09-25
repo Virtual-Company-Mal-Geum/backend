@@ -9,8 +9,7 @@ import lombok.NoArgsConstructor;
 
 /**
  * Order 1건이 Partner의 어느 Academy 소속인지 기록하는 조인 엔티티.
- * Order는 그대로 두고(FREE/Pack 주문과 스키마 동일), Partner 플로우에서 생성될 때만 이 행이 추가된다.
- * PartnerSubscription·Client는 Academy를 통해 갈 수 있어 여기 따로 저장하지 않는다(중복 저장 금지).
+ * Order (FREE/Pack 주문과 스키마 동일)와 달리 Partner 구독 유저 전용 Order
  */
 @Entity
 @Table(name = "partner_order")

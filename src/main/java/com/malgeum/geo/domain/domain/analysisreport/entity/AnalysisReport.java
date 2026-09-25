@@ -31,7 +31,7 @@ public class AnalysisReport extends BaseTimeEntity { //백엔드에서 AI분석 
     @Id
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY) //TODO: 과연 진짜 1대1 일까? 같은 Order이여도 분석을 여러번 요청할 수도 있지 않을까?
+    @OneToOne(fetch = FetchType.LAZY)
     @MapsId // 주문 엔티티의 id(PK)가 곧 분석결과의 id값과 동일하므로 둘을 매핑
     @JoinColumn(name = "order_id", nullable = false, unique = true)
     private Order order;

@@ -31,8 +31,9 @@ public class PartnerSubscription extends PricingModelTimeEntity {
     @Column(name = "status", nullable = false, length = 20)
     private SubscriptionStatus status;
 
-    @Column(name = "additional_academy_count", nullable = false)
-    private int additionalAcademyCount;
+    // 추후에, Partner 구독제에서 추가적인 학원 수를 원할때 과금하는 방향으로 작성해놓음. 일단 미정
+//    @Column(name = "additional_academy_count", nullable = false)
+//    private int additionalAcademyCount; //초과된 학원 수 (Partner는 1곳당 +20,000원)
 
     @Column(name = "monthly_price", nullable = false, precision = 10, scale = 2)
     private BigDecimal monthlyPrice;
@@ -47,24 +48,23 @@ public class PartnerSubscription extends PricingModelTimeEntity {
     public enum PartnerTier {
         FOUNDING_PARTNER(10), PARTNER(20), PARTNER_PLUS(50);
 
-        private final int includedAcademies;
+        private final int academiesCapacity; //기본 학원 수
 
-        PartnerTier(int includedAcademies) {
-            this.includedAcademies = includedAcademies;
+        PartnerTier(int academiesCapacity) {
+            this.academiesCapacity = academiesCapacity;
         }
 
-        public int getIncludedAcademies() {
-            return includedAcademies;
+        public int getAcademiesCapacity() {
+            return academiesCapacity;
         }
     }
 
     @Builder
-    public PartnerSubscription(Client client, PartnerTier tier, SubscriptionStatus status, int additionalAcademyCount,
+    public PartnerSubscription(Client client, PartnerTier tier, SubscriptionStatus status,
                                BigDecimal monthlyPrice) {
         this.client = client;
         this.tier = tier;
         this.status = status;
-        this.additionalAcademyCount = additionalAcademyCount;
         this.monthlyPrice = monthlyPrice;
         if (tier == PartnerTier.FOUNDING_PARTNER) {
             this.priceLockUntil = LocalDateTime.now().plusMonths(12);
@@ -76,8 +76,8 @@ public class PartnerSubscription extends PricingModelTimeEntity {
         return purchasedAt.plusMonths(1);
     }
 
-    public int getAcademyCapacity() {
-        return tier.getIncludedAcademies() + additionalAcademyCount;
+    public int getAcademiesCapacity() {
+        return tier.getAcademiesCapacity();
     }
 
     public void renew() {
