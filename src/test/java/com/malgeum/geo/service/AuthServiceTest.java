@@ -23,10 +23,13 @@ import com.malgeum.geo.SignUpForm;
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.global.auth.JwtTokenProvider;
+import com.malgeum.geo.domain.pricing.account.PricingConfig;
+import com.malgeum.geo.domain.pricing.account.service.PricingService;
+import com.malgeum.geo.domain.pricing.account.repository.PricingAccountRepository;
 import org.springframework.boot.test.context.TestConfiguration;
 
 @DataJpaTest
-@Import({ AuthService.class, AuthServiceTest.TestConfig.class })
+@Import({ AuthService.class, AuthServiceTest.TestConfig.class, PricingService.class, PricingConfig.class })
 public class AuthServiceTest {
 
     @Autowired
@@ -34,6 +37,9 @@ public class AuthServiceTest {
 
     @Autowired
     private ClientRepository clientRepository;
+
+    @Autowired
+    private PricingAccountRepository pricingAccounts;
 
     @Test
     @DisplayName("로그인 폼을 작성하고, 정상적으로 해당 계정이 생성되고 저장까지 완료돼야한다.")
@@ -62,6 +68,7 @@ public class AuthServiceTest {
         assertThat(savedClient.get().getEmail()).isEqualTo(form.getEmail());
         assertThat(savedClient.get().getCompany()).isEqualTo(form.getCompany());
         assertThat(savedClient.get().getPhone()).isEqualTo(form.getPhone());
+        assertThat(pricingAccounts.findByClient_Id(savedClient.get().getId())).isPresent();
 
         System.out.println(savedClient.get().getName());
         System.out.println(savedClient.get().getEmail());

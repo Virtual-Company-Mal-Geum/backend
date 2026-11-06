@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.entity.Client.OAuthProvider;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
+import com.malgeum.geo.domain.pricing.account.service.PricingService;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import jakarta.servlet.http.HttpSession;
@@ -25,8 +27,10 @@ import jakarta.servlet.http.HttpSession;
 public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequest, OAuth2User> {
     private final HttpSession httpSession;
     private final ClientRepository clientRepository;
+    private final PricingService pricingService;
 
     @Override
+    @Transactional
     public OAuth2User loadUser(OAuth2UserRequest userRequest) throws OAuth2AuthenticationException {
         OAuth2UserService<OAuth2UserRequest, OAuth2User> delegate = new DefaultOAuth2UserService();
         OAuth2User oAuth2User = delegate.loadUser(userRequest);
@@ -83,6 +87,8 @@ public class CustomOAuth2UserService implements OAuth2UserService<OAuth2UserRequ
                 .providerId(providerId)
                 .build();
 
-        return clientRepository.save(client);
+        Client saved = clientRepository.save(client);
+        pricingService.createAccount(saved);
+        return saved;
     }
 }

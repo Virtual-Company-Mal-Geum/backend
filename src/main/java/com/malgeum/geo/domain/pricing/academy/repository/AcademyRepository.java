@@ -11,6 +11,6 @@ public interface AcademyRepository extends JpaRepository<Academy, Long> {
     boolean existsByPartnerSubscription_IdAndDomainAndStatus(
             Long partnerSubscriptionId, String domain, Academy.AcademyStatus status);
 
-    Optional<Academy> findByPartnerSubscription_Client_IdAndDomainAndStatus(
-            Long clientId, String domain, Academy.AcademyStatus status);
+    Optional<Academy> findByPartnerSubscription_IdAndDomainAndStatus(
+            Long subscriptionId, String domain, Academy.AcademyStatus status);
 }

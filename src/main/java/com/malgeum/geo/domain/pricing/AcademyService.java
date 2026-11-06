@@ -1,6 +1,5 @@
 package com.malgeum.geo.domain.pricing;
 
-import java.time.LocalDateTime;
 
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -11,6 +10,8 @@ import com.malgeum.geo.domain.pricing.academy.entity.Academy;
 import com.malgeum.geo.domain.pricing.academy.repository.AcademyRepository;
 import com.malgeum.geo.domain.pricing.partnersubscription.entity.PartnerSubscription;
 import com.malgeum.geo.domain.pricing.partnersubscription.repository.PartnerSubscriptionRepository;
+import com.malgeum.geo.domain.pricing.account.entity.PricingAccount;
+import com.malgeum.geo.domain.pricing.account.service.PricingService;
 
 import lombok.RequiredArgsConstructor;
 
@@ -19,14 +20,16 @@ import lombok.RequiredArgsConstructor;
 public class AcademyService {
     private final AcademyRepository academyRepository;
     private final PartnerSubscriptionRepository partnerSubscriptionRepository;
+    private final PricingService pricingService;
 
     @Transactional
     public Long registerAcademy(AcademyRegisterRequest request) {
         Long clientId = Long.valueOf(SecurityContextHolder.getContext().getAuthentication().getName());
 
+        PricingAccount account = pricingService.lockAccount(clientId);
         PartnerSubscription subscription = partnerSubscriptionRepository
-                .findByClientIdAndStatusAndExpiredAtAfter(
-                        clientId, PartnerSubscription.SubscriptionStatus.ACTIVE, LocalDateTime.now())
+                .findByPricingAccount_IdAndStatusAndExpiredAtAfter(
+                        account.getId(), PartnerSubscription.SubscriptionStatus.ACTIVE, pricingService.now())
                 .orElseThrow(() -> new IllegalStateException("활성화된 Partner 구독이 없습니다."));
 
         long activeCount = academyRepository.countByPartnerSubscription_IdAndStatus(

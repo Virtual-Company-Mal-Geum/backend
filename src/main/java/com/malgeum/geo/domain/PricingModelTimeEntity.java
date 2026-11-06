@@ -7,6 +7,8 @@ import lombok.Getter;
 
 import java.time.LocalDateTime;
 
+import com.malgeum.geo.domain.pricing.account.PricingConfig;
+
 @Getter
 @MappedSuperclass
 public abstract class PricingModelTimeEntity {
@@ -19,22 +21,22 @@ public abstract class PricingModelTimeEntity {
     @PrePersist
     protected void initPurchasePeriod() {
         if (purchasedAt == null) {
-            purchasedAt = LocalDateTime.now();
+            purchasedAt = LocalDateTime.now(PricingConfig.BILLING_ZONE);
         }
         if (expiredAt == null) {
-            expiredAt = calculateExpiredAt(purchasedAt);
+            expiredAt = createExpiredAt(purchasedAt);
         }
     }
 
-    protected LocalDateTime calculateExpiredAt(LocalDateTime purchasedAt) {
+    protected LocalDateTime createExpiredAt(LocalDateTime purchasedAt) {
         return purchasedAt.plusDays(365);
     }
 
-    protected void extendExpiredAt(LocalDateTime expiredAt) {
+    protected void changeExpiredAt(LocalDateTime expiredAt) {
         this.expiredAt = expiredAt;
     }
 
     public boolean isExpired() {
-        return LocalDateTime.now().isAfter(expiredAt);
+        return !expiredAt.isAfter(LocalDateTime.now(PricingConfig.BILLING_ZONE));
     }
 }

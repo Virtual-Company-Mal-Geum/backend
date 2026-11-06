@@ -1,13 +1,15 @@
 package com.malgeum.geo.domain.pricing.packorder.entity;
 
 import com.malgeum.geo.domain.PricingModelTimeEntity;
-import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.pricing.account.entity.PricingAccount;
+import com.malgeum.geo.domain.pricing.account.PricingConfig;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "pack_order")
@@ -19,8 +21,8 @@ public class PackOrder extends PricingModelTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
-    private Client client;
+    @JoinColumn(name = "pricing_account_id", nullable = false)
+    private PricingAccount pricingAccount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type", nullable = false, length = 20)
@@ -58,8 +60,8 @@ public class PackOrder extends PricingModelTimeEntity {
     }
 
     @Builder
-    public PackOrder(Client client, PackType type, PackStatus status, BigDecimal pricePaid) {
-        this.client = client;
+    public PackOrder(PricingAccount pricingAccount, PackType type, PackStatus status, BigDecimal pricePaid) {
+        this.pricingAccount = pricingAccount;
         this.type = type;
         this.status = status;
         this.totalPages = type.getPages();
@@ -68,7 +70,11 @@ public class PackOrder extends PricingModelTimeEntity {
     }
 
     public void usePage() {
-        if (status != PackStatus.PAID || isExpired()) {
+        usePage(LocalDateTime.now(PricingConfig.BILLING_ZONE));
+    }
+
+    public void usePage(LocalDateTime now) {
+        if (status != PackStatus.PAID || remainingPages <= 0 || !getExpiredAt().isAfter(now)) {
             throw new IllegalStateException("사용할 수 없는 Pack입니다.");
         }
         remainingPages--;

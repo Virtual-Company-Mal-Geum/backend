@@ -1,7 +1,8 @@
 package com.malgeum.geo.domain.pricing.partnersubscription.entity;
 
 import com.malgeum.geo.domain.PricingModelTimeEntity;
-import com.malgeum.geo.domain.domain.client.entity.Client;
+import com.malgeum.geo.domain.pricing.account.entity.PricingAccount;
+import com.malgeum.geo.domain.pricing.account.PricingConfig;
 import jakarta.persistence.*;
 import lombok.Builder;
 import lombok.Getter;
@@ -20,8 +21,8 @@ public class PartnerSubscription extends PricingModelTimeEntity {
     private Long id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "client_id", nullable = false)
-    private Client client;
+    @JoinColumn(name = "pricing_account_id", nullable = false)
+    private PricingAccount pricingAccount;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "tier", nullable = false, length = 20)
@@ -42,7 +43,7 @@ public class PartnerSubscription extends PricingModelTimeEntity {
     private LocalDateTime priceLockUntil;
 
     public enum SubscriptionStatus {
-        PENDING_PAYMENT, ACTIVE, CANCELLED
+        ACTIVE, INACTIVE
     }
 
     public enum PartnerTier {
@@ -60,19 +61,19 @@ public class PartnerSubscription extends PricingModelTimeEntity {
     }
 
     @Builder
-    public PartnerSubscription(Client client, PartnerTier tier, SubscriptionStatus status,
+    public PartnerSubscription(PricingAccount pricingAccount, PartnerTier tier, SubscriptionStatus status,
                                BigDecimal monthlyPrice) {
-        this.client = client;
+        this.pricingAccount = pricingAccount;
         this.tier = tier;
         this.status = status;
         this.monthlyPrice = monthlyPrice;
         if (tier == PartnerTier.FOUNDING_PARTNER) {
-            this.priceLockUntil = LocalDateTime.now().plusMonths(12);
+            this.priceLockUntil = LocalDateTime.now(PricingConfig.BILLING_ZONE).plusMonths(12);
         }
     }
 
     @Override
-    protected LocalDateTime calculateExpiredAt(LocalDateTime purchasedAt) {
+    protected LocalDateTime createExpiredAt(LocalDateTime purchasedAt) {
         return purchasedAt.plusMonths(1);
     }
 
@@ -81,10 +82,13 @@ public class PartnerSubscription extends PricingModelTimeEntity {
     }
 
     public void renew() {
-        extendExpiredAt(getExpiredAt().plusMonths(1));
+        changeExpiredAt(getExpiredAt().plusMonths(1));
     }
 
     public void cancel() {
-        this.status = SubscriptionStatus.CANCELLED;
+        if(getStatus()==SubscriptionStatus.INACTIVE) {
+            throw new IllegalStateException("이미 취소된 구독입니다.");
+        }
+        this.status = SubscriptionStatus.INACTIVE;
     }
 }

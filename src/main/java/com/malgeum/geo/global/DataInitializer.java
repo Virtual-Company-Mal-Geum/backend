@@ -7,6 +7,8 @@ import org.springframework.stereotype.Component;
 
 import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
+import com.malgeum.geo.domain.pricing.account.service.PricingService;
+import org.springframework.transaction.annotation.Transactional;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,8 +19,10 @@ import lombok.extern.slf4j.Slf4j;
 public class DataInitializer implements CommandLineRunner {
     // 테스트용 고객 데이터 초기화 클래스
     private final ClientRepository clientRepository;
+    private final PricingService pricingService;
 
     @Override
+    @Transactional
     public void run(String... args) throws Exception {
         if (clientRepository.findById(1L).isEmpty()) {
             Client testClient = Client.builder()
@@ -32,6 +36,7 @@ public class DataInitializer implements CommandLineRunner {
             // 실제 생성된 ID를 로그로 찍어서 확인하거나,
             // 가짜 로그인 API에서 이 ID를 사용하도록 맞추면 됩니다.
             Client saved = clientRepository.save(Objects.requireNonNull(testClient));
+            pricingService.createAccount(saved);
             System.out.println("✅ 테스트용 고객 생성 완료! ID: " + saved.getId());
         }
     }

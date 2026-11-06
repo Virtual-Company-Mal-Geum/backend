@@ -48,41 +48,21 @@ public class Client extends BaseTimeEntity {
     @Column(name = "status", nullable = false, length = 20)
     private ClientStatus status;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "plan", updatable = true,nullable = false, length = 20)
-    private ClientPlan plan;
-
-    @Builder
-    public Client(String password, String name, String company, String email, String phone) {
-        this.password = password;
-        this.name = name;
-        this.company = company;
-        this.email = email;
-        this.phone = phone;
-        this.status = ClientStatus.ACTIVE;
-        this.plan = ClientPlan.FREE;
-    }
-
     @Builder
     public Client(String password, String name, String company, String email, String phone, String providerId,
-            OAuthProvider provider) {
+                  OAuthProvider provider) {
         this.password = password;
         this.name = name;
         this.company = company;
         this.email = email;
         this.phone = phone;
         this.providerId = providerId;
-        this.provider = OAuthProvider.GOOGLE;
+        this.provider = provider;
         this.status = ClientStatus.ACTIVE;
-        this.plan = ClientPlan.FREE;
     }
 
     public enum ClientStatus {
         ACTIVE, EXPIRED
-    }
-
-    public enum ClientPlan {
-        FREE, FOUNDING_PARTNER, PARTNER, PARTNER_PLUS
     }
 
     public enum OAuthProvider {
@@ -99,19 +79,4 @@ public class Client extends BaseTimeEntity {
         this.providerId = providerId;
     }
 
-    public void updatePlanFree() {
-        this.plan = ClientPlan.FREE;
-    }
-
-    public void updatePlanFoundingPartner() {
-        this.plan = ClientPlan.FOUNDING_PARTNER;
-    }
-
-    public void updatePlanPartner() {
-        this.plan = ClientPlan.PARTNER;
-    }
-
-    public void updatePlanPartnerPlus() {
-        this.plan = ClientPlan.PARTNER_PLUS;
-    }
 }

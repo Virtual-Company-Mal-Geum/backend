@@ -14,6 +14,7 @@ import com.malgeum.geo.domain.domain.client.entity.Client;
 import com.malgeum.geo.domain.domain.client.repository.ClientRepository;
 import com.malgeum.geo.dto.PasswordUpdateRequest;
 import com.malgeum.geo.global.auth.JwtTokenProvider;
+import com.malgeum.geo.domain.pricing.account.service.PricingService;
 
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -24,6 +25,7 @@ public class AuthService {
     private final ClientRepository clientRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtTokenProvider jwtTokenProvider;
+    private final PricingService pricingService;
 
     @Transactional
     public String signup(SignUpForm form, BindingResult bindingResult) {
@@ -52,6 +54,7 @@ public class AuthService {
                 .build();
 
         Client savedClient = clientRepository.save(client);
+        pricingService.createAccount(savedClient);
         return jwtTokenProvider.generateToken(savedClient.getId().toString(), List.of("ROLE_USER"));
     }
 
