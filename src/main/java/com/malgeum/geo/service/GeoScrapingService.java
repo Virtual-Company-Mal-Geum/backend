@@ -177,7 +177,6 @@ public class GeoScrapingService {
         return switch (domain) {
             case NEWS -> "NEWS_ARTICLE";
             case ECOMMERCE -> "PRODUCT";
-            case TECHBLOG -> "TECH_BLOG";
             case EDUCATION -> classifyEducation(schemaTypes, text);
         };
     }
