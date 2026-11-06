@@ -49,5 +49,5 @@ src/main/resources/application.yaml
 AGENTS.md
 CLAUDE.md
 
-/graphify-out
-/docs
+/graphify-out/
+/docs/
