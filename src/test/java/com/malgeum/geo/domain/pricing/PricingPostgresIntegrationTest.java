@@ -45,6 +45,7 @@ import com.malgeum.geo.global.common.ApiException;
 @DataJpaTest(properties = {
         "spring.datasource.url=${PRICING_TEST_DB_URL}", "spring.datasource.username=pricing_test",
         "spring.datasource.password=", "spring.jpa.database-platform=org.hibernate.dialect.PostgreSQLDialect",
+        "spring.datasource.driver-class-name=org.postgresql.Driver",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 }, showSql = false)
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)

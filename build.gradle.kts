@@ -28,6 +28,8 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	//db/jpa
 	implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+	implementation("org.flywaydb:flyway-core")
+	runtimeOnly("org.flywaydb:flyway-database-postgresql")
 	runtimeOnly("org.postgresql:postgresql")
 	implementation("com.h2database:h2")
 	//json

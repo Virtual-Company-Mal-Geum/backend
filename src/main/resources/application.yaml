@@ -8,10 +8,20 @@ spring:
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    default-schema: public
+    schemas: public
+    # Set true only for the first startup of a pre-Flyway database.
+    baseline-on-migrate: ${FLYWAY_BASELINE_ON_MIGRATE:false}
+    baseline-version: "20261104"
+    clean-disabled: true
+    validate-migration-naming: true
   jpa:
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     hibernate:
-      ddl-auto: update #주의) 개발 단계에서만 update 할것!!
+      ddl-auto: validate
     open-in-view: false
     properties:
       hibernate:
