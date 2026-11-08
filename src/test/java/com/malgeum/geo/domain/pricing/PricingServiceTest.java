@@ -92,8 +92,8 @@ class PricingServiceTest {
         PackOrder pack = pack(PackOrder.PackStatus.PAID, NOW.plusDays(10));
         for (int i = 0; i < 8; i++) {
             Order order = orderRepository.findById(scan()).orElseThrow();
-            assertThat(order.getPricingModeAtAcceptance()).isEqualTo(PricingMode.PACK);
-            assertThat(order.getFreeScanUsageMonth()).isNull();
+            assertThat(order.getPricingMode()).isEqualTo(PricingMode.PACK);
+            assertThat(order.getFreeScanMonthlyBaseDate()).isNull();
         }
         assertThat(pack.getRemainingPages()).isEqualTo(5);
         assertThat(account.getFreeScanUsedCount()).isZero();
@@ -170,7 +170,7 @@ class PricingServiceTest {
         assertThat(account.getFreeScanUsedCount()).isEqualTo(5);
         Order order = orderRepository.findById(scan()).orElseThrow();
         assertThat(account.getFreeScanUsedCount()).isOne();
-        assertThat(order.getFreeScanUsageMonth()).isEqualTo(LocalDate.of(2026, 12, 1));
+        assertThat(order.getFreeScanMonthlyBaseDate()).isEqualTo(LocalDate.of(2026, 12, 1));
     }
 
     @Test
@@ -266,8 +266,8 @@ class PricingServiceTest {
         jobs.saveAndFlush(job);
         Long id = orders.acceptReevaluation(baseline.getId());
         Order reeval = orderRepository.findById(id).orElseThrow();
-        assertThat(reeval.getBaselineOrder().getId()).isEqualTo(baseline.getId());
-        assertThat(reeval.getFreeScanUsageMonth()).isNull();
+        assertThat(reeval.getParentOrder().getId()).isEqualTo(baseline.getId());
+        assertThat(reeval.getFreeScanMonthlyBaseDate()).isNull();
         assertThat(account.getFreeScanUsedCount()).isEqualTo(5);
     }
 

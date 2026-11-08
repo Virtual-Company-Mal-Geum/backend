@@ -27,21 +27,23 @@ public class PricingAccount { //client의 결제/구독 정보 담당 객체
     @JoinColumn(name = "client_id", nullable = false, unique = true)
     private Client client;
 
-    @Column(name = "scan_usage_month", nullable = false)
-    private LocalDate scanUsageMonth;
+    // 무료 분석 횟수 카운터를 위한 월 단위 기준일. 매월 1일로 초기화됨.
+    @Column(name = "free_scan_monthly_base_date", nullable = false)
+    private LocalDate freeScanMonthlyBaseDate;
 
+    // 이번 달에 사용한 무료 분석 횟수
     @Column(name = "free_scan_used_count", nullable = false)
     private int freeScanUsedCount;
 
     public PricingAccount(Client client, LocalDate month) {
         this.client = Objects.requireNonNull(client);
-        this.scanUsageMonth = month.withDayOfMonth(1);
+        this.freeScanMonthlyBaseDate = month.withDayOfMonth(1);
     }
 
     public void acceptGeneralScan(PricingMode mode, LocalDate month) {
         LocalDate normalizedMonth = month.withDayOfMonth(1);
-        if (!normalizedMonth.equals(scanUsageMonth)) {
-            scanUsageMonth = normalizedMonth;
+        if (!normalizedMonth.equals(freeScanMonthlyBaseDate)) {
+            freeScanMonthlyBaseDate = normalizedMonth;
             freeScanUsedCount = 0;
         }
         if (mode == PricingMode.FREE) {
@@ -54,6 +56,6 @@ public class PricingAccount { //client의 결제/구독 정보 담당 객체
     }
 
     public int freeScansUsedIn(LocalDate month) {
-        return month.withDayOfMonth(1).equals(scanUsageMonth) ? freeScanUsedCount : 0;
+        return month.withDayOfMonth(1).equals(freeScanMonthlyBaseDate) ? freeScanUsedCount : 0;
     }
 }
