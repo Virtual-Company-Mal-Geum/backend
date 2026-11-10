@@ -23,4 +23,6 @@ public interface AnalysisJobRepository extends JpaRepository<AnalysisJob, Long> 
   Optional<AnalysisJob> findNextJobForUpdate();
 
   Optional<AnalysisJob> findByOrderId(Long orderId);
+
+  List<AnalysisJob> findAllByOrder_ParentOrder_Id(Long parentOrderId);
 }

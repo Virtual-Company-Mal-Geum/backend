@@ -54,6 +54,8 @@ public class AnalysisJob extends BaseTimeEntity {
 
     private LocalDateTime lockedAt;
 
+    private LocalDateTime completedAt;
+
     public static AnalysisJob create(Order order) {
         AnalysisJob job = new AnalysisJob();
         job.order = order;
@@ -74,6 +76,13 @@ public class AnalysisJob extends BaseTimeEntity {
         this.status = AnalysisJobStatus.SUCCEEDED;
         this.errorMessage = null;
         this.lockedAt = null;
+        this.completedAt = LocalDateTime.now();
+    }
+
+    public boolean isInProgress() {
+        return status == AnalysisJobStatus.PENDING
+                || status == AnalysisJobStatus.RUNNING
+                || status == AnalysisJobStatus.RETRY_WAIT;
     }
 
     public void markRetryWait(String errorMessage, LocalDateTime nextRunAt) {

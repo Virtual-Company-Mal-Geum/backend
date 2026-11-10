@@ -31,11 +31,21 @@ public class GeoAiService {
         this.objectMapper = objectMapper;
     }
 
+    // 점수·피드백만 받는다.
     public GeoEvaluationResponse evaluateTarget(GeoEvaluationRequest aiRequest) {
-        log.info("[GeoAiService] AI 서버로 분석 요청을 전송합니다. URL: {}", aiRequest.url());
+        return post("/evaluate", aiRequest);
+    }
+
+    // 개선안을 포함해서 받는다.
+    public GeoEvaluationResponse diagnoseTarget(GeoEvaluationRequest aiRequest) {
+        return post("/diagnose", aiRequest);
+    }
+
+    private GeoEvaluationResponse post(String path, GeoEvaluationRequest aiRequest) {
+        log.info("[GeoAiService] AI 서버로 분석 요청을 전송합니다. path: {}, URL: {}", path, aiRequest.url());
         try {
             return restClient.post()
-                    .uri("/evaluate")
+                    .uri(path)
                     .contentType(MediaType.APPLICATION_JSON)
                     .body(aiRequest)
                     .retrieve()

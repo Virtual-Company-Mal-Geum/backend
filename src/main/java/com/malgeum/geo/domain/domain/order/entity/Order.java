@@ -74,7 +74,7 @@ public class Order extends BaseTimeEntity { // 백엔드에서 처리하는 사�
     @Column(name = "resource_key", nullable = false, length = 36, unique = true)
     private String resourceKey;
 
-    // 개선안(JSON-LD)을 함께 요청한 주문인지. 재평가는 이 값이 true인 원 주문에만 허용된다.
+    // /diagnose 인지.(개선안(JSON-LD)을 함께 요청한 주문인지.) 재평가는 이 값이 true인 원 주문에만 허용된다.
     @Column(name = "with_improvement", nullable = false, columnDefinition = "boolean not null default false")
     private boolean withImprovement;
 

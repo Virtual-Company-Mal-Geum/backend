@@ -165,4 +165,51 @@ class GeoAsyncWorkerResponseHandlingTest {
         verify(analysisJobService).markFailureOrRetry(eq(ORDER_ID), exCaptor.capture());
         assertThat(exCaptor.getValue()).hasMessageContaining("rate-limited");
     }
+
+    private void givenImprovementOrderAndScrape() {
+        givenOrderAndScrape();
+        given(orderService.getOrder(ORDER_ID).isWithImprovement()).willReturn(true);
+    }
+
+    // ai-server /diagnose 실제 응답 형식: {status, domain, analysis, jsonld}
+    private GeoEvaluationResponse diagnoseResponse(String jsonld) throws Exception {
+        return MAPPER.readValue("""
+                {"status":"success","domain":"education",
+                 "analysis":{"raw_score":58,"total_score":55},
+                 "jsonld":%s}
+                """.formatted(jsonld), GeoEvaluationResponse.class);
+    }
+
+    @Test
+    @DisplayName("개선안 포함 주문은 /diagnose로 보내고 analysis·jsonld를 그대로 저장한다.")
+    void improvementOrder_CallsDiagnoseAndStoresAnalysisAndJsonld() throws Exception {
+        givenClaimedJob();
+        givenImprovementOrderAndScrape();
+        given(geoAiService.diagnoseTarget(any()))
+                .willReturn(diagnoseResponse("{\"valid\":true,\"jsonld\":{\"@type\":\"EducationalOrganization\"}}"));
+
+        worker.processNextJob();
+
+        verify(geoAiService, never()).evaluateTarget(any());
+        ArgumentCaptor<Map<String, Object>> logCaptor = ArgumentCaptor.forClass(Map.class);
+        verify(analysisExecutionService).saveAnalysisReport(eq(ORDER_ID), anyString(), logCaptor.capture());
+        assertThat(logCaptor.getValue()).containsKeys("analysis", "jsonld").doesNotContainKey("result");
+        verify(analysisJobService).markSucceeded(ORDER_ID);
+    }
+
+    @Test
+    @DisplayName("개선안 JSON-LD 생성이 실패(valid=false)하면 채점이 됐어도 저장하지 않고 재시도·실패로 넘긴다.")
+    void improvementOrder_InvalidJsonld_MarksFailure() throws Exception {
+        givenClaimedJob();
+        givenImprovementOrderAndScrape();
+        given(geoAiService.diagnoseTarget(any()))
+                .willReturn(diagnoseResponse("{\"valid\":false,\"error\":\"JSON-LD 생성 실패: 429\"}"));
+
+        worker.processNextJob();
+
+        verify(analysisExecutionService, never()).saveAnalysisReport(any(), any(), any());
+        ArgumentCaptor<Exception> exCaptor = ArgumentCaptor.forClass(Exception.class);
+        verify(analysisJobService).markFailureOrRetry(eq(ORDER_ID), exCaptor.capture());
+        assertThat(exCaptor.getValue()).hasMessageContaining("JSON-LD 생성 실패: 429");
+    }
 }

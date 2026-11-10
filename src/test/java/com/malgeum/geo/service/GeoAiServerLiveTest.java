@@ -57,4 +57,44 @@ class GeoAiServerLiveTest {
                         aiResponse.reason(), aiResponse.detail())
                 .isNotEqualTo("error");
     }
+
+    // 개선안 포함 주문(withImprovement=true)이 타는 경로. 채점 + Gemini JSON-LD 생성까지 실제로 호출한다.
+    private static final String DIAGNOSE_TARGET_URL = "https://www.jhwtoeic.com/";
+    private static final DomainStatus DIAGNOSE_TARGET_DOMAIN = DomainStatus.EDUCATION;
+
+    @Test
+    @DisplayName("실제 크롤링 결과를 AI 서버 /diagnose로 보내면 채점(analysis)과 유효한 개선안(jsonld)을 함께 받아야 한다.")
+    void crawlAndDiagnoseWithRealAiServer() throws Exception {
+        ObjectMapper prettyMapper = new ObjectMapper();
+
+        ScrapedData scrapedData = new GeoScrapingService()
+                .extractDataForAi(DIAGNOSE_TARGET_URL, DIAGNOSE_TARGET_DOMAIN);
+        GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
+
+        GeoAiService geoAiService = new GeoAiService(RestClient.builder(), new ObjectMapper(), AI_SERVER_BASE_URL);
+        GeoEvaluationResponse aiResponse = geoAiService.diagnoseTarget(aiRequest);
+
+        System.out.println("\n===== [/diagnose] AI 서버가 보낸 응답 (" + DIAGNOSE_TARGET_URL + ") =====");
+        System.out.println(prettyMapper.writerWithDefaultPrettyPrinter().writeValueAsString(aiResponse));
+        System.out.println("=====================================\n");
+
+        assertThat(aiResponse.status())
+                .as("/diagnose 처리 결과 (reason: %s, detail: %s)", aiResponse.reason(), aiResponse.detail())
+                .isEqualTo("success");
+
+        // 채점 결과는 result가 아니라 analysis 키로 온다. 전후 비교 점수(ReportResult.Score)가 여기서 읽힌다.
+        assertThat(aiResponse.result()).isNull();
+        assertThat(aiResponse.analysis().path("raw_score").isNumber()).isTrue();
+        assertThat(aiResponse.analysis().path("total_score").isNumber()).isTrue();
+
+        // GeoAsyncWorker는 valid=false면 주문을 성공으로 치지 않는다. 프론트는 script_block을 복사해 에이전시에 준다.
+        assertThat(aiResponse.jsonld().path("valid").asBoolean(false))
+                .as("JSON-LD 생성 결과 (error: %s)", aiResponse.jsonld().path("error").asText())
+                .isTrue();
+        assertThat(aiResponse.jsonld().path("script_block").asText()).contains("application/ld+json");
+
+        // 한글 피드백·요약이 깨지지 않고 들어왔는지 (DB에 그대로 저장되는 값)
+        assertThat(aiResponse.analysis().path("top_3_failure_reasons").path(0).asText()).containsPattern("[가-힣]");
+        assertThat(aiResponse.jsonld().path("summary").asText()).containsPattern("[가-힣]");
+    }
 }

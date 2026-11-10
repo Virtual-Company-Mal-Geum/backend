@@ -7,6 +7,7 @@ import java.util.Optional;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.malgeum.geo.domain.domain.analysisjob.entity.AnalysisJob;
 import com.malgeum.geo.domain.domain.analysisjob.service.AnalysisExecutionService;
@@ -93,7 +94,9 @@ public class GeoAsyncWorker {
                 order.getTargetUrl(),
                 order.getDomainStatus());
         GeoEvaluationRequest aiRequest = GeoEvaluationRequest.from(scrapedData);
-        GeoEvaluationResponse aiResponse = geoAiService.evaluateTarget(aiRequest);
+        GeoEvaluationResponse aiResponse = order.isWithImprovement()
+                ? geoAiService.diagnoseTarget(aiRequest)
+                : geoAiService.evaluateTarget(aiRequest);
 
         String status = aiResponse.status() != null ? aiResponse.status() : "unknown";
         switch (status) {
@@ -108,14 +111,33 @@ public class GeoAsyncWorker {
                     "AI 서버 처리 실패(" + aiResponse.reason() + "): " + aiResponse.detail());
         }
 
+        // 개선안 포함 주문은 채점만 되고 JSON-LD 생성이 실패하면 성공이 아니다. 재시도 후 최종 실패로 넘긴다.
+        if (order.isWithImprovement()) {
+            JsonNode jsonld = aiResponse.jsonld();
+            if (jsonld == null || !jsonld.path("valid").asBoolean(false)) {
+                throw new IllegalStateException("AI 서버 처리 실패(개선안 JSON-LD 생성 실패): "
+                        + (jsonld == null ? "jsonld 없음" : jsonld.path("error").asText("valid=false")));
+            }
+        }
+
         if (aiResponse.contentWarning() != null) {
             log.warn("[AsyncWorker] AI 채점 품질 경고 - orderId: {}, warning: {}, mainContentLength: {}",
                     orderId, aiResponse.contentWarning(), aiResponse.mainContentLength());
         }
 
+        // AI 응답의 키 이름을 그대로 저장한다. /evaluate → result, /diagnose → analysis + jsonld
+        // 키 이름은 AI 서버 기준임.
         ObjectMapper mapper = new ObjectMapper();
         Map<String, Object> aiLogMap = new HashMap<>();
-        aiLogMap.put("result", mapper.convertValue(aiResponse.result(), Object.class));
+        if (aiResponse.result() != null) {
+            aiLogMap.put("result", mapper.convertValue(aiResponse.result(), Object.class));
+        }
+        if (aiResponse.analysis() != null) {
+            aiLogMap.put("analysis", mapper.convertValue(aiResponse.analysis(), Object.class));
+        }
+        if (aiResponse.jsonld() != null) {
+            aiLogMap.put("jsonld", mapper.convertValue(aiResponse.jsonld(), Object.class));
+        }
         if (aiResponse.contentWarning() != null) {
             aiLogMap.put("content_warning", aiResponse.contentWarning());
             aiLogMap.put("main_content_length", aiResponse.mainContentLength());
