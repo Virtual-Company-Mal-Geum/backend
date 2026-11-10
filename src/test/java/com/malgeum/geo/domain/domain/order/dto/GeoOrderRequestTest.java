@@ -8,8 +8,19 @@ import org.junit.jupiter.api.Test;
 
 import com.malgeum.geo.domain.domain.order.entity.Order.DomainStatus;
 import com.malgeum.geo.global.common.DataNotFoundException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.malgeum.geo.domain.pricing.account.entity.PricingMode;
 
 class GeoOrderRequestTest {
+
+    @Test
+    void acceptsChosenImprovementSourceWithoutBreakingOlderRequests() throws Exception {
+        ObjectMapper mapper = new ObjectMapper();
+        GeoOrderRequest selected = mapper.readValue("{\"withImprovement\":true,\"improvementSource\":\"PARTNER\"}", GeoOrderRequest.class);
+        assertThat(selected.improvementSource()).isEqualTo(PricingMode.PARTNER);
+        assertThat(selected.isImprovementRequested()).isTrue();
+        assertThat(mapper.readValue("{}", GeoOrderRequest.class).improvementSource()).isNull();
+    }
 
     private GeoOrderRequest requestWithServiceType(String serviceType) {
         return GeoOrderRequest.from("https://example.com", "site", serviceType);

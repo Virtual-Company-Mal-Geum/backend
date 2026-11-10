@@ -69,7 +69,43 @@ public class PricingService {
                         used, unlimited ? null : PricingAccount.FREE_MONTHLY_SCAN_LIMIT - used));
     }
 
-    
+    // 주문·작업 저장과 같은 트랜잭션에서 잠금과 차감을 처리해야 실패 시 함께 롤백된다.
+    @Transactional(propagation = Propagation.MANDATORY)
+    public Academy authorizeOrder(Order order, PricingMode requestedSource) {
+        PricingAccount account = lockAccount(order.getClient().getId());
+        LocalDateTime now = now();
+        PartnerSubscription partner = getActivePartner(account.getId(), now);
+        PackOrder pack = getUsablePack(account.getId(), now);
+        if (!order.isWithImprovement()) {
+            PricingMode mode = setAvaliablePricingMode(partner, pack);
+            account.acceptGeneralScan(mode, now.toLocalDate());
+            order.recordPricing(mode, mode == PricingMode.FREE ? now.toLocalDate().withDayOfMonth(1) : null);
+            return null;
+        }
+
+        PricingMode source = determinePricingModeForImprovement(requestedSource, partner, pack);
+        order.recordPricing(source, null);
+        if (source == PricingMode.PACK) {
+            if (pack == null) {
+                throw new ApiException(HttpStatus.CONFLICT, "INSUFFICIENT_PACK_CREDITS", "사용 가능한 Pack 크레딧이 없습니다.");
+            }
+            // shortcut: 기존 모델처럼 접수 시 소진한다. 예약·최종 실패 반환은 크레딧 원장 구현 시 연결한다.
+            pack.usePage(now);
+            return null;
+        }
+        if (partner == null) {
+            throw new ApiException(HttpStatus.FORBIDDEN, "PARTNER_SUBSCRIPTION_REQUIRED", "유효한 Partner 구독이 없습니다.");
+        }
+        String domain = Academy.normalizeDomain(order.getTargetUrl());
+        Academy academy = academyRepository
+                .findByPartnerSubscription_IdAndDomainAndStatus(partner.getId(), domain, Academy.AcademyStatus.ACTIVE)
+                .orElseThrow(() -> new ApiException(HttpStatus.FORBIDDEN, "ACADEMY_NOT_REGISTERED", "등록되지 않은 학원 도메인입니다."));
+        if (academy.getMonthlyPagesUsed() >= Academy.MONTHLY_PAGE_QUOTA) {
+            throw new ApiException(HttpStatus.CONFLICT, "ACADEMY_PAGE_LIMIT_EXCEEDED", "해당 학원의 이번 달 개선안 한도를 모두 사용했습니다.");
+        }
+        academy.usePage();
+        return academy;
+    }
 
     public LocalDateTime now() {
         return LocalDateTime.now(pricingClock.withZone(PricingConfig.BILLING_ZONE));
@@ -91,7 +127,7 @@ public class PricingService {
         return partner != null ? PricingMode.PARTNER : pack != null ? PricingMode.PACK : PricingMode.FREE;
     }
 
-    private static PricingMode improvementSource(PricingMode requested, PartnerSubscription partner, PackOrder pack) {
+    private static PricingMode determinePricingModeForImprovement(PricingMode requested, PartnerSubscription partner, PackOrder pack) {
         if (requested == PricingMode.FREE) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_IMPROVEMENT_SOURCE", "개선안 이용권은 PACK 또는 PARTNER를 선택해 주세요.");
         }

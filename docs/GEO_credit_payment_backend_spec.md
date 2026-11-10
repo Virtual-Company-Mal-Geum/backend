@@ -385,7 +385,7 @@ MVP에서 크레딧 사용 확정은 다음이 모두 `analysis_report`에 저�
 
 ### 8.5 재평가 요청
 
-`POST /geo/order`에 `baselineOrderId`만 담긴 요청이다.
+`POST /geo/order`에 `parentOrderId`만 담긴 요청이다.
 
 1. 원 주문의 소유자, `with_improvement = true`, `baseline_order_id IS NULL`, AnalysisJob `SUCCEEDED`를 확인한다. 아니면 `404 RESOURCE_NOT_FOUND` 또는 `409 REEVAL_NOT_ALLOWED`.
 2. 원 주문 행을 `SELECT ... FOR UPDATE`로 잠근다.
@@ -469,7 +469,7 @@ Partner 계좌이체 해지·과오납 반환은 Pack Refund를 사용하지 않
 | GET `/pack-credits/balance` | 회원 | 가용·예약·환불 보류 잔액 |
 | GET `/pack-credits/batches` | 회원 | 구매별 잔액·만료 |
 | GET `/pack-credits/ledger` | 회원 | Pack 원장 |
-| POST `/geo/order` (기존 확장) | 회원 | 무료 Scan, `withImprovement`로 개선안 포함 주문(크레딧 예약), `baselineOrderId`로 재평가 |
+| POST `/geo/order` (기존 확장) | 회원 | 무료 Scan, `withImprovement`로 개선안 포함 주문(크레딧 예약), `parentOrderId`로 재평가 |
 | GET `/geo/reports` (기존 확장) | 회원 | 분석 주문 목록. 재평가 주문 제외, 점수·재평가 요약 포함 |
 | GET `/geo/report/{orderId}` (기존 확장) | 소유자 | 상태·결과(무료는 제한)·크레딧 상태·`versions`·남은 재평가 |
 | POST `/geo/report/delete/{orderId}` (기존) | 소유자 | 리포트 삭제. 원 주문 삭제 시 재평가 주문도 숨김 |
@@ -573,7 +573,7 @@ amount는 비교용이며 서버는 주문의 `totalAmount=53900`을 승인 comm
 
 | 요청 | 처리 |
 | --- | --- |
-| `baselineOrderId` 있음 | 재평가(§8.5). 다른 필드 무시, 크레딧·멱등키 없음 |
+| `parentOrderId` 있음 | 재평가(§8.5). 다른 필드 무시, 크레딧·멱등키 없음 |
 | `withImprovement: true` | 멱등키 검사 → Wallet 잠금 → Batch 선택·RESERVE → 주문·AnalysisJob 저장(§8.2). 응답에 `creditStatus=RESERVED`, 남은 크레딧 |
 | 그 외 | 무료 Scan. Wallet 잠금 → 월 한도 검사(§7.2) → 주문·AnalysisJob 저장 |
 

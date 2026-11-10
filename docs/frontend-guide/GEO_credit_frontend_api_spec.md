@@ -94,7 +94,7 @@ Partner API는 프론트가 임의로 선구현하지 않는다. 이 문서의 `
 | --- | --- | --- |
 | 무료 Scan | 개선안 없이 요청한 주문 | 0원. 월 한도 적용 |
 | 개선안 포함 주문 | `withImprovement: true` | Pack 크레딧 1개 또는 Partner 한도 |
-| 재평가 | `baselineOrderId` 지정 | 원 주문에 포함 |
+| 재평가 | `parentOrderId` 지정 | 원 주문에 포함 |
 
 분석 주문은 이메일 인증을 마친 계정 또는 Google 계정 로그인만 접수한다. 미인증 계정은 `403 ACCOUNT_NOT_VERIFIED`를 받는다(§14).
 
@@ -176,7 +176,7 @@ Idempotency-Key: <UUID v4>
 | `POST /partner-applications` | Partner 신청 — 계획 |
 | `POST /billing/invoices/{id}/deposit-reports` | 입금 알림 — 계획 |
 
-`POST /geo/order`는 크레딧을 예약하는 개선안 포함 주문일 때만 멱등키가 필요하다. 개선안 없는 주문과 재평가 주문(`baselineOrderId`)은 크레딧을 쓰지 않아 멱등키 없이 보낸다. 재평가는 진행 중인 건이 있으면 서버가 `409 REEVAL_IN_PROGRESS`로 막기 때문에 중복 생성되지 않는다.
+`POST /geo/order`는 크레딧을 예약하는 개선안 포함 주문일 때만 멱등키가 필요하다. 개선안 없는 주문과 재평가 주문(`parentOrderId`)은 크레딧을 쓰지 않아 멱등키 없이 보낸다. 재평가는 진행 중인 건이 있으면 서버가 `409 REEVAL_IN_PROGRESS`로 막기 때문에 중복 생성되지 않는다.
 
 ### 4.3 값 형식
 
@@ -302,7 +302,7 @@ Idempotency-Key: <UUID v4>
 | 구현 | GET | `/pack-credits/balance` | 회원 | Pack 크레딧 잔액 |
 | 구현 | GET | `/pack-credits/batches` | 회원 | 구매별 잔여량·만료일 |
 | 구현 | GET | `/pack-credits/ledger` | 회원 | 크레딧 변경 이력 |
-| 기존 확장 | POST | `/geo/order` | 회원 | 분석 주문. 기본은 무료 Scan, `withImprovement`로 개선안 포함, `baselineOrderId`로 재평가 |
+| 기존 확장 | POST | `/geo/order` | 회원 | 분석 주문. 기본은 무료 Scan, `withImprovement`로 개선안 포함, `parentOrderId`로 재평가 |
 | 기존 확장 | GET | `/geo/reports` | 회원 | 분석 주문 목록 (재평가 주문 제외) |
 | 기존 확장 | GET | `/geo/report/{orderId}` | 소유자 | 주문 상태·결과·크레딧·재평가 정보 조회 |
 | 구현 | GET | `/payments/{paymentId}/refund-eligibility` | 소유자 | Pack 전액 환불 가능 확인 |
@@ -709,7 +709,7 @@ Content-Type: application/json
 
 ### 재평가
 
-`POST /geo/order`에 `{ "baselineOrderId": <원 주문 id> }`만 보낸다. 크레딧을 차감하지 않는다. 자세한 규칙은 비교 명세서 §3.2를 따른다.
+`POST /geo/order`에 `{ "parentOrderId": <원 주문 id> }`만 보낸다. 크레딧을 차감하지 않는다. 자세한 규칙은 비교 명세서 §3.2를 따른다.
 
 - 원 주문이 `withImprovement: true`이고 `COMPLETED`인 경우에만 가능하다.
 - 원 주문 1건당 재평가 횟수와 기한은 `GET /pack-products`의 `reevalCountPerCredit`, `reevalWindowDays`와 같다. 기한은 원 주문 완료 시각부터 센다.
@@ -717,12 +717,6 @@ Content-Type: application/json
 ## 12. Pack 전액 환불
 
 토스페이먼츠 카드·간편결제 Pack 구매 중 해당 결제로 받은 크레딧을 하나도 예약·사용·만료하지 않은 경우만 원 결제수단으로 전액 환불한다. 일부 사용 묶음의 잔여 크레딧 부분 환불은 제공하지 않는다.
-
-Partner 계좌이체의 해지·과오납 반환은 이 API를 사용하지 않고 운영 정산으로 처리한다.
-
-### GET `/payments/{paymentId}/refund-eligibility`
-
-```json
 {
   "paymentId": "pay_1d8ef273",
   "eligible": true,
@@ -818,6 +812,8 @@ Content-Type: application/json
   "businessRegistrationNumber": "123-45-67890",
   "representativeName": "홍길동",
   "billingEmail": "billing@example.com",
+  "billingPhone": "02-1234-5678",
+  "billingAddress": "서울특별시 강남구 테헤란로 123",
   "taxInvoiceEmail": "tax@example.com",
   "expectedDepositorName": "말금에듀마케팅",
   "caseStudyConsent": false

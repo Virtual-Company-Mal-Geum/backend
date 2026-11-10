@@ -13,12 +13,12 @@ v2.0부터는 새 리소스나 엔드포인트를 만들지 않는다. 기존 �
 
 ### 1.1 핵심 개념
 
-**재평가 = 원 주문을 기준으로 삼는 새 주문**이다. 개선안(JSON-LD)을 에이전시가 적용한 뒤, 같은 URL을 다시 주문해 채점한다. 새 주문은 `baselineOrderId`로 원 주문에 묶인다.
+**재평가 = 원 주문을 기준으로 삼는 새 주문**이다. 개선안(JSON-LD)을 에이전시가 적용한 뒤, 같은 URL을 다시 주문해 채점한다. 새 주문은 `parentOrderId`로 원 주문에 묶인다.
 
 | 용어 | 의미 |
 | --- | --- |
-| 원 주문 (최초 평가) | `withImprovement: true`로 요청한 주문. `baselineOrderId`가 `null` |
-| 재평가 주문 | 개선안 적용 후 다시 채점한 주문. `baselineOrderId` = 원 주문 id |
+| 원 주문 (최초 평가) | `withImprovement: true`로 요청한 주문. `parentOrderId`가 `null` |
+| 재평가 주문 | 개선안 적용 후 다시 채점한 주문. `parentOrderId` = 원 주문 id |
 | 버전 | 원 주문 1개와 재평가 주문 N개를 합쳐 부르는 말 |
 | 기준(before) | 비교 뷰의 왼쪽. 항상 원 주문 |
 | 비교 대상(after) | 비교 뷰의 오른쪽. 사용자가 고른 재평가 주문 |
@@ -48,16 +48,16 @@ v2.0부터는 새 리소스나 엔드포인트를 만들지 않는다. 기존 �
 
 | 메서드 | 경로 | 변경 |
 | --- | --- | --- |
-| POST | `/order` | 요청에 `baselineOrderId` 추가 |
+| POST | `/order` | 요청에 `parentOrderId` 추가 |
 | GET | `/reports` | 재평가 주문은 목록에서 제외. 각 행에 점수·재평가 요약 필드 추가 |
-| GET | `/report/{orderId}` | `baselineOrderId`, `versions`, `reevalRemaining`, `reevalExpiresAt` 추가 |
+| GET | `/report/{orderId}` | `parentOrderId`, `versions`, `reevalRemaining`, `reevalExpiresAt` 추가 |
 | POST | `/report/delete/{orderId}` | 원 주문을 삭제하면 재평가 주문도 함께 숨김. 요청 형식은 변경 없음 |
 
 전후 비교용 API는 없다. 프론트가 `GET /report/{원 주문}`과 `GET /report/{재평가 주문}`을 각각 호출해서 비교한다.
 
 ### 3.2 POST `/order` — 재평가 요청
 
-재평가일 때는 `baselineOrderId`만 보낸다. URL, 도메인 같은 나머지 값은 서버가 원 주문에서 복사하고, 요청에 들어온 다른 필드는 무시한다.
+재평가일 때는 `parentOrderId`만 보낸다. URL, 도메인 같은 나머지 값은 서버가 원 주문에서 복사하고, 요청에 들어온 다른 필드는 무시한다.
 
 ```http
 POST /api/v1/geo/order
@@ -80,7 +80,7 @@ Content-Type: application/json
 
 `orderId`는 **새 재평가 주문의 id**다.
 
-일반 주문(`baselineOrderId` 없음)의 요청과 응답은 바뀌지 않는다.
+일반 주문(`parentOrderId` 없음)의 요청과 응답은 바뀌지 않는다.
 
 서버 검증과 실패 응답:
 
@@ -164,7 +164,7 @@ Content-Type: application/json
 
 | 필드 | 설명 |
 | --- | --- |
-| `baselineOrderId` | 조회한 주문이 재평가 주문이면 원 주문 id, 원 주문이면 `null` |
+| `parentOrderId` | 조회한 주문이 재평가 주문이면 원 주문 id, 원 주문이면 `null` |
 | `versions` | 원 주문이 첫 번째, 그 뒤로 재평가 주문이 `createdAt` 오름차순. 탭을 만들 때 쓴다 |
 | `reevalRemaining` | 남은 재평가 횟수. 재평가 대상이 아닌 주문(FREE 등)이면 `null` |
 | `reevalExpiresAt` | 재평가 기한. `reevalRemaining`이 `null`이면 `null` |

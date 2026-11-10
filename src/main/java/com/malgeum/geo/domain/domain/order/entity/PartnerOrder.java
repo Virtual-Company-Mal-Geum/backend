@@ -7,10 +7,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-/**
- * Order 1건이 Partner의 어느 Academy 소속인지 기록하는 조인 엔티티.
- * Order (FREE/Pack 주문과 스키마 동일)와 달리 Partner 구독 유저 전용 Order
- */
+// Order 1건이 Partner의 어느 Academy 소속인지 기록하는 조인 엔티티.
 @Entity
 @Table(name = "partner_order")
 @Getter

@@ -45,8 +45,10 @@ public class GeoController {
     }
 
     @PostMapping("/order")
-    public ResponseEntity<GeoOrderResponse> startAnalysis(@RequestBody GeoOrderRequest orderRequest) {
-        Long orderId = orderService.acceptOrder(orderRequest);
+    public ResponseEntity<GeoOrderResponse> startAnalysis(@RequestBody GeoOrderRequest orderRequest,@AuthenticationPrincipal UserDetails userDetails) {
+        Long orderId = orderRequest.parentOrderId() != null
+                ? orderService.acceptReevaluation(orderRequest.parentOrderId())
+                : orderService.acceptOrder(orderRequest);
         return ResponseEntity.ok(new GeoOrderResponse("GEO 분석 요청이 접수되었습니다.", orderId));
     }
 
