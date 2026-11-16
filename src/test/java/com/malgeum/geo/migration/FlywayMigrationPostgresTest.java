@@ -33,17 +33,17 @@ class FlywayMigrationPostgresTest {
     @Test
     void emptyDatabaseMigratesAndMatchesAllJpaEntities() {
         Flyway flyway = flyway(false);
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(4);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(5);
         validateJpaMappings();
         assertThat(flyway.migrate().migrationsExecuted).isZero();
-        assertThat(flyway.info().applied()).hasSize(4);
+        assertThat(flyway.info().current().getVersion().getVersion()).isEqualTo("20261116");
     }
 
     @Test
     void existingDatabaseIsBaselinedAndMigratedWithoutLosingPurchases() throws Exception {
         createLegacyDatabase();
         Flyway flyway = flyway(true);
-        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(3);
+        assertThat(flyway.migrate().migrationsExecuted).isEqualTo(4);
         validateJpaMappings();
         assertThat(query("SELECT remaining_pages FROM pack_order WHERE id=33")).isEqualTo("4");
         assertThat(query("SELECT price_paid FROM pack_order WHERE id=33")).isEqualTo("49000.00");
@@ -59,12 +59,26 @@ class FlywayMigrationPostgresTest {
     @Test
     void manuallyMigratedDatabaseCanBeAdoptedWithoutResettingQuota() throws Exception {
         createLegacyDatabase();
-        // Run existing scripts once, then remove their history to model manual deployment.
-        flyway(true).migrate();
+        // Apply the previous schema before adopting the manually migrated database.
+        flyway(true, "20261106.1").migrate();
         execute("DROP TABLE flyway_schema_history",
-                "UPDATE pricing_account SET free_scan_used_count=4");
-        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(3);
+                "UPDATE pricing_account SET scan_usage_month=DATE '2026-11-01', free_scan_used_count=4",
+                """
+                INSERT INTO client_order (id, client_id, target_url, site_name, service_type, domain_status,
+                                          resource_key, pricing_mode_at_acceptance, free_scan_usage_month, baseline_order_id)
+                VALUES (51, 11, 'https://example.com', 'Original', 'SCAN', 'NEWS', 'original',
+                        'FREE', DATE '2026-11-01', NULL),
+                       (52, 11, 'https://example.com', 'Reevaluation', 'SCAN', 'NEWS', 'reevaluation',
+                        'PACK', NULL, 51)
+                """);
+        assertThat(flyway(true).migrate().migrationsExecuted).isEqualTo(4);
         assertThat(query("SELECT min(free_scan_used_count) FROM pricing_account")).isEqualTo("4");
+        assertThat(query("SELECT free_scan_monthly_base_date FROM pricing_account WHERE client_id=11"))
+                .isEqualTo("2026-11-01");
+        assertThat(query("SELECT free_scan_monthly_base_date FROM client_order WHERE id=51"))
+                .isEqualTo("2026-11-01");
+        assertThat(query("SELECT pricing_mode FROM client_order WHERE id=51")).isEqualTo("FREE");
+        assertThat(query("SELECT parent_order_id FROM client_order WHERE id=52")).isEqualTo("51");
         validateJpaMappings();
     }
 
@@ -92,9 +106,13 @@ class FlywayMigrationPostgresTest {
     }
 
     private Flyway flyway(boolean baseline) {
+        return flyway(baseline, "latest");
+    }
+
+    private Flyway flyway(boolean baseline, String target) {
         return Flyway.configure().dataSource(dataSource).schemas(schema).defaultSchema(schema)
                 .locations("classpath:db/migration").baselineVersion("20261104")
-                .baselineOnMigrate(baseline).cleanDisabled(true).validateMigrationNaming(true).load();
+                .baselineOnMigrate(baseline).cleanDisabled(true).validateMigrationNaming(true).target(target).load();
     }
 
     private void createLegacyDatabase() throws Exception {
